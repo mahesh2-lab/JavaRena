@@ -1,6 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import MonacoEditor, { OnMount, BeforeMount } from "@monaco-editor/react";
-import { FileCode2, Copy, Check, Maximize2, Minimize2 } from "lucide-react";
+import {
+  FileCode2,
+  Copy,
+  Check,
+  Maximize2,
+  Minimize2,
+  WrapText,
+} from "lucide-react";
 import { Theme } from "../App";
 
 interface EditorProps {
@@ -243,6 +250,7 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [copied, setCopied] = useState(false);
   const [wordWrap, setWordWrap] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const lineCount = code.split("\n").length;
   const charCount = code.length;
@@ -279,10 +287,24 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
     }
   }, [copied]);
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isFullscreen]);
+
   const toggleWordWrap = () => {
     const next = !wordWrap;
     setWordWrap(next);
     editorRef.current?.updateOptions({ wordWrap: next ? "on" : "off" });
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
   const IconBtn = ({
@@ -315,7 +337,21 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
   );
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--bg-editor)" }}>
+    <div
+      className="flex flex-col h-full"
+      style={{
+        background: "var(--bg-editor)",
+        ...(isFullscreen && {
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+        }),
+      }}
+    >
+      {" "}
       {/* ── Top Tab Bar ── */}
       <div
         className="px-3 py-2 flex items-center gap-2 shrink-0"
@@ -332,7 +368,10 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
             border: "1px solid var(--border-subtle)",
           }}
         >
-          <FileCode2 className="w-3.5 h-3.5" style={{ color: "var(--accent-file)" }} />
+          <FileCode2
+            className="w-3.5 h-3.5"
+            style={{ color: "var(--accent-file)" }}
+          />
           <span
             className="text-xs font-medium"
             style={{
@@ -353,12 +392,31 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
 
         {/* Toolbar */}
         <div className="flex items-center gap-1">
-          <IconBtn onClick={toggleWordWrap} title={wordWrap ? "Disable word wrap" : "Enable word wrap"}>
-            {wordWrap ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          <IconBtn
+            onClick={toggleWordWrap}
+            title={wordWrap ? "Disable word wrap" : "Enable word wrap"}
+          >
+            <WrapText
+              className="w-3.5 h-3.5"
+              style={{ opacity: wordWrap ? 1 : 0.5 }}
+            />
+          </IconBtn>
+          <IconBtn
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
           </IconBtn>
           <IconBtn onClick={handleCopy} title="Copy code">
             {copied ? (
-              <Check className="w-3.5 h-3.5" style={{ color: "var(--accent-success)" }} />
+              <Check
+                className="w-3.5 h-3.5"
+                style={{ color: "var(--accent-success)" }}
+              />
             ) : (
               <Copy className="w-3.5 h-3.5" />
             )}
@@ -382,7 +440,6 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
           </span>
         </div>
       </div>
-
       {/* ── Monaco Editor ── */}
       <div className="flex-1 min-h-0">
         <MonacoEditor
@@ -446,7 +503,6 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
           }}
         />
       </div>
-
       {/* ── Bottom Status Bar ── */}
       <div
         className="px-4 py-1.5 flex items-center justify-between shrink-0"
@@ -456,29 +512,50 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
         }}
       >
         <div className="flex items-center gap-4">
-          <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[11px] font-mono"
+            style={{ color: "var(--text-muted)" }}
+          >
             Ln {cursorPos.line}, Col {cursorPos.col}
           </span>
-          <div className="w-[1px] h-3" style={{ background: "var(--border-subtle)" }} />
-          <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
+          <div
+            className="w-[1px] h-3"
+            style={{ background: "var(--border-subtle)" }}
+          />
+          <span
+            className="text-[11px] font-mono"
+            style={{ color: "var(--text-muted)" }}
+          >
             {lineCount} lines
           </span>
-          <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[11px] font-mono"
+            style={{ color: "var(--text-muted)" }}
+          >
             {charCount} chars
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[11px] font-mono"
+            style={{ color: "var(--text-muted)" }}
+          >
             UTF-8
           </span>
-          <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[11px] font-mono"
+            style={{ color: "var(--text-muted)" }}
+          >
             Spaces: 4
           </span>
           <span
             className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{
               color: theme === "dark" ? "#10b981" : "#16a34a",
-              background: theme === "dark" ? "rgba(16,185,129,0.08)" : "rgba(22,163,74,0.06)",
+              background:
+                theme === "dark"
+                  ? "rgba(16,185,129,0.08)"
+                  : "rgba(22,163,74,0.06)",
             }}
           >
             {theme === "dark" ? "Eclipse Emerald" : "Aurora Light"}

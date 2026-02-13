@@ -46,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           <span style={{ color: "var(--logo-text)" }}>Java</span>
-          <span className="text-gradient">Arena</span>
+          <span className="text-gradient">Rena</span>
         </span>
       </div>
 
