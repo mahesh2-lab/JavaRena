@@ -71,10 +71,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onRun}
           disabled={!isReady || isRunning}
           title={isRunning ? "Running..." : "Run Code"}
-          className={`flex items-center gap-2.5 rounded-md text-sm font-semibold transition-all duration-150 shadow-sm ${
-            isMobile ? "p-2" : "px-5 py-2"
-          }`}
+          className={`flex items-center justify-center font-semibold transition-all duration-150 shadow-sm ${isMobile
+              ? "rounded-full"
+              : "gap-2.5 rounded-md text-sm px-5 py-2"
+            }`}
           style={{
+            ...(isMobile
+              ? { width: "34px", height: "34px", padding: 0 }
+              : {}),
             background:
               !isReady || isRunning
                 ? "var(--btn-disabled-bg)"
@@ -104,9 +108,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
         >
           {isRunning ? (
-            <Loader2 className="w-4 h-4 animate-spin-slow" />
+            <Loader2 className={isMobile ? "w-3.5 h-3.5 animate-spin-slow" : "w-4 h-4 animate-spin-slow"} />
           ) : (
-            <Play className="w-4 h-4 fill-current" />
+            <Play className={isMobile ? "w-3.5 h-3.5 fill-current" : "w-4 h-4 fill-current"} />
           )}
           {!isMobile && <span>{isRunning ? "Running" : "Run"}</span>}
         </button>
@@ -114,63 +118,67 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Right: Status + Settings */}
       <div className="flex items-center gap-2 sm:gap-4 justify-end">
-        {/* Status Indicator */}
-        <div
-          className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-subtle)",
-          }}
-        >
-          <div className="relative">
-            <div
-              className={`w-2 h-2 rounded-full ${isReady ? "animate-status-pulse" : ""}`}
-              style={{
-                background: isReady
-                  ? "var(--status-dot)"
-                  : "var(--btn-disabled-text)",
-              }}
-            />
-          </div>
-          <span
-            className="text-[11px] font-medium tracking-wide uppercase hidden sm:inline"
+        {/* Status Indicator - Desktop only */}
+        {!isMobile && (
+          <div
+            className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full"
             style={{
-              color: isReady ? "var(--status-text)" : "var(--text-muted)",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
             }}
           >
-            {isReady ? "Ready" : "Loading..."}
-          </span>
-        </div>
+            <div className="relative">
+              <div
+                className={`w-2 h-2 rounded-full ${isReady ? "animate-status-pulse" : ""}`}
+                style={{
+                  background: isReady
+                    ? "var(--status-dot)"
+                    : "var(--btn-disabled-text)",
+                }}
+              />
+            </div>
+            <span
+              className="text-[11px] font-medium tracking-wide uppercase hidden sm:inline"
+              style={{
+                color: isReady ? "var(--status-text)" : "var(--text-muted)",
+              }}
+            >
+              {isReady ? "Ready" : "Loading..."}
+            </span>
+          </div>
+        )}
 
-        {/* Console Toggle Button */}
-        <button
-          onClick={onToggleConsole}
-          title={showConsole ? "Hide console" : "Show console"}
-          className="p-2 rounded-lg transition-all duration-200"
-          style={{
-            background: "transparent",
-            color: showConsole ? "var(--text-secondary)" : "var(--text-muted)",
-            border: "1px solid transparent",
-          }}
-          onMouseEnter={(e) => {
-            const el = e.currentTarget as HTMLButtonElement;
-            el.style.background = "var(--bg-surface-hover)";
-            el.style.color = "var(--text-secondary)";
-          }}
-          onMouseLeave={(e) => {
-            const el = e.currentTarget as HTMLButtonElement;
-            el.style.background = "transparent";
-            el.style.color = showConsole
-              ? "var(--text-secondary)"
-              : "var(--text-muted)";
-          }}
-        >
-          {showConsole ? (
-            <Eye className="w-[18px] h-[18px]" />
-          ) : (
-            <EyeOff className="w-[18px] h-[18px]" />
-          )}
-        </button>
+        {/* Console Toggle Button - Desktop only */}
+        {!isMobile && (
+          <button
+            onClick={onToggleConsole}
+            title={showConsole ? "Hide console" : "Show console"}
+            className="p-2 rounded-lg transition-all duration-200"
+            style={{
+              background: "transparent",
+              color: showConsole ? "var(--text-secondary)" : "var(--text-muted)",
+              border: "1px solid transparent",
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "var(--bg-surface-hover)";
+              el.style.color = "var(--text-secondary)";
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "transparent";
+              el.style.color = showConsole
+                ? "var(--text-secondary)"
+                : "var(--text-muted)";
+            }}
+          >
+            {showConsole ? (
+              <Eye className="w-[18px] h-[18px]" />
+            ) : (
+              <EyeOff className="w-[18px] h-[18px]" />
+            )}
+          </button>
+        )}
 
         {/* Fullscreen Toggle Button */}
         <button
