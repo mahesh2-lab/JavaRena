@@ -4,6 +4,7 @@ import { Editor } from "./components/Editor";
 import { Console, LogEntry } from "./components/Console";
 import { useCheerpJ } from "./hooks/useCheerpJ";
 import { useIsMobile } from "./hooks/use-mobile";
+import { Toaster } from "./components/ui/toaster";
 
 const DEFAULT_CODE = `public class Main {
     public static void main(String[] args) {
@@ -13,10 +14,33 @@ const DEFAULT_CODE = `public class Main {
 
 export type Theme = "dark" | "light";
 
+// Declare global shared session interface
+declare global {
+  interface Window {
+    __SHARED_SESSION__?: {
+      id: string;
+      code: string;
+      output: string;
+      views: number;
+      isFork: boolean;
+    };
+  }
+}
+
 export default function App() {
-  const [code, setCode] = useState<string>(
-    () => localStorage.getItem("java_code") || DEFAULT_CODE,
-  );
+  // Check for shared session on mount
+  const sharedSession =
+    typeof window !== "undefined" ? window.__SHARED_SESSION__ : null;
+
+  const [code, setCode] = useState<string>(() => {
+    // First priority: shared session
+    if (sharedSession?.code) {
+      return sharedSession.code;
+    }
+    // Second priority: localStorage
+    const saved = localStorage.getItem("java_code");
+    return saved || DEFAULT_CODE;
+  });
   const [output, setOutput] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [execTime, setExecTime] = useState<number | null>(null);
@@ -34,9 +58,34 @@ export default function App() {
     "editor",
   );
   const [stdinInput, setStdinInput] = useState<string>("");
+  const [isForkedSession, setIsForkedSession] = useState<boolean>(false);
 
   const isMobile = useIsMobile();
   const { isReady } = useCheerpJ();
+
+  // Handle shared session on mount
+  useEffect(() => {
+    if (sharedSession?.isFork) {
+      setIsForkedSession(true);
+      // Parse output back into LogEntry format if it exists
+      if (sharedSession.output) {
+        const outputLines = sharedSession.output.split("\n");
+        const logEntries = outputLines.map((line) => ({
+          text: line,
+          type: "info" as const,
+          timestamp: Date.now(),
+        }));
+        setOutput(logEntries);
+      }
+      // Show a notification that this is a forked session
+      setTimeout(() => {
+        log(
+          "👋 You're viewing a shared code snippet. Click Run to execute or edit the code!",
+          "info",
+        );
+      }, 500);
+    }
+  }, []);
 
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme);
@@ -297,6 +346,7 @@ export default function App() {
                     code={code}
                     onChange={handleCodeChange}
                     theme={theme}
+                    output={output.map((o) => o.text).join("\n")}
                   />
                 </div>
               ) : (
@@ -326,7 +376,12 @@ export default function App() {
                 flexShrink: 0,
               }}
             >
-              <Editor code={code} onChange={handleCodeChange} theme={theme} />
+              <Editor
+                code={code}
+                onChange={handleCodeChange}
+                theme={theme}
+                output={output.map((o) => o.text).join("\n")}
+              />
             </div>
 
             {showConsole && (
@@ -381,6 +436,7 @@ export default function App() {
           </>
         )}
       </main>
+      <Toaster />
     </div>
   );
 }

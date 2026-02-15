@@ -6,9 +6,48 @@ import json
 import tempfile
 import shutil
 import time
+import sqlite3
+import hashlib
+import html
+import threading
 from pathlib import Path
-from flask import Flask, request, jsonify, send_from_directory
+from datetime import datetime, timedelta
+
+# ── Dependency check ──
+REQUIRED_PACKAGES = {
+    "flask": "Flask",
+    "flask_cors": "flask-cors",
+    "PIL": "Pillow",
+    "nanoid": "nanoid",
+    "waitress": "waitress",
+}
+
+_missing = []
+for _mod, _pkg in REQUIRED_PACKAGES.items():
+    try:
+        __import__(_mod)
+    except ImportError:
+        _missing.append(_pkg)
+
+if _missing:
+    RED = "\033[91m"
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
+    print(f"\n{RED}{BOLD}[ERROR] Missing required Python packages:{RESET}")
+    for pkg in _missing:
+        print(f"  {RED}  - {pkg}{RESET}")
+    print(f"\n  Install them with:")
+    print(f"    {BOLD}pip install {' '.join(_missing)}{RESET}")
+    print(f"  Or install all at once:")
+    print(f"    {BOLD}pip install -r requirements.txt{RESET}\n")
+    sys.exit(1)
+
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import re
+from nanoid import generate
+from snippet import generate_image
 
 # Create Flask app with proper static folder configuration
 app = Flask(__name__, static_folder='dist', static_url_path='')
@@ -24,6 +63,15 @@ IS_MAC = SYSTEM == "Darwin"
 JAVA_PATH = None
 JAVAC_PATH = None
 JAVA_AVAILABLE = False  # Cache the result
+
+# Share database paths
+DB_PATH = "shares.db"
+SHARE_IMAGES_DIR = "dist/share-images"
+
+# Rate limiting
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 5  # max shares per window
+rate_limit_storage = {}
 
 print(f"Java Compiler Server - Detected OS: {SYSTEM}")
 
@@ -88,6 +136,108 @@ def find_java():
         return False
 
 
+def init_share_db():
+    """Initialize SQLite database for shares"""
+    os.makedirs(SHARE_IMAGES_DIR, exist_ok=True)
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS shares (
+            id TEXT PRIMARY KEY,
+            code TEXT NOT NULL,
+            output TEXT,
+            views INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            image_path TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+    print("[DB] Share database initialized")
+
+
+def generate_share_id():
+    """Generate a unique short ID for shares"""
+    return generate(size=10)
+
+
+def get_client_ip():
+    """Get client IP for rate limiting"""
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0]
+    return request.remote_addr
+
+
+def check_rate_limit():
+    """Check if client has exceeded rate limit"""
+    client_ip = get_client_ip()
+    current_time = time.time()
+
+    if client_ip not in rate_limit_storage:
+        rate_limit_storage[client_ip] = []
+
+    # Remove old timestamps
+    rate_limit_storage[client_ip] = [
+        ts for ts in rate_limit_storage[client_ip]
+        if current_time - ts < RATE_LIMIT_WINDOW
+    ]
+
+    if len(rate_limit_storage[client_ip]) >= RATE_LIMIT_MAX:
+        return False
+
+    rate_limit_storage[client_ip].append(current_time)
+    return True
+
+
+def sanitize_code(code):
+    """Validate code input (XSS protection handled by json.dumps in response)"""
+    # No HTML escaping needed - json.dumps() handles proper escaping
+    # when injecting into JavaScript context
+    return code
+
+
+def cleanup_expired_shares():
+    """Background task to cleanup expired shares and images"""
+    while True:
+        try:
+            time.sleep(3600)  # Run every hour
+
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+
+            # Get expired shares with images
+            cursor.execute("""
+                SELECT id, image_path FROM shares 
+                WHERE expires_at < datetime('now')
+            """)
+            expired = cursor.fetchall()
+
+            # Delete expired shares
+            cursor.execute(
+                "DELETE FROM shares WHERE expires_at < datetime('now')")
+            conn.commit()
+
+            # Delete associated images
+            for share_id, image_path in expired:
+                if image_path and os.path.exists(image_path):
+                    try:
+                        os.remove(image_path)
+                        print(f"[CLEANUP] Deleted image: {image_path}")
+                    except Exception as e:
+                        print(
+                            f"[CLEANUP] Failed to delete image {image_path}: {e}")
+
+            print(f"[CLEANUP] Cleaned up {len(expired)} expired shares")
+            conn.close()
+
+        except Exception as e:
+            print(f"[CLEANUP] Error during cleanup: {e}")
+
+
 def compile_java(source_code, stdin_input=""):
     """Compile and run Java source code with optional stdin input"""
     if not find_java():
@@ -101,7 +251,7 @@ def compile_java(source_code, stdin_input=""):
         print(f"[LOG] Created temp dir: {temp_dir}")
 
         # Write source code to file
-        source_file.write_text(source_code)
+        source_file.write_text(source_code, encoding='utf-8')
         print(f"[LOG] Source code written ({len(source_code)} chars)")
 
         # Compile using detected Java path
@@ -111,6 +261,7 @@ def compile_java(source_code, stdin_input=""):
             compile_cmd,
             capture_output=True,
             text=True,
+            encoding='utf-8',
             cwd=temp_dir
         )
 
@@ -128,7 +279,8 @@ def compile_java(source_code, stdin_input=""):
         has_stdin = bool(stdin_input)
         print(f"[LOG] Running: {' '.join(run_cmd)}")
         if has_stdin:
-            print(f"[LOG] Stdin input provided ({len(stdin_input)} chars): {repr(stdin_input[:100])}")
+            print(
+                f"[LOG] Stdin input provided ({len(stdin_input)} chars): {repr(stdin_input[:100])}")
         else:
             print("[LOG] No stdin input provided")
 
@@ -137,6 +289,7 @@ def compile_java(source_code, stdin_input=""):
             input=stdin_input if stdin_input else None,
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=10,
             cwd=temp_dir
         )
@@ -191,6 +344,217 @@ def compile_java(source_code, stdin_input=""):
 # API Routes
 
 
+@app.route("/api/share", methods=["POST"])
+def create_share():
+    """Create a shareable session"""
+    try:
+        # Check rate limit
+        if not check_rate_limit():
+            return jsonify({
+                "success": False,
+                "error": "Rate limit exceeded. Please try again later."
+            }), 429
+
+        data = request.get_json()
+        code = data.get("code", "")
+        output = data.get("output", "")
+
+        # Validate input
+        if not code or not code.strip():
+            return jsonify({
+                "success": False,
+                "error": "Code cannot be empty"
+            }), 400
+
+        if len(code) > 50000:  # 50KB limit
+            return jsonify({
+                "success": False,
+                "error": "Code too large (max 50KB)"
+            }), 400
+
+        # Sanitize inputs
+        code = sanitize_code(code)
+        output = sanitize_code(output) if output else ""
+
+        # Generate unique ID
+        share_id = generate_share_id()
+
+        # Calculate expiration (30 days)
+        expires_at = datetime.now() + timedelta(days=30)
+
+        # Store in database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO shares (id, code, output, expires_at)
+            VALUES (?, ?, ?, ?)
+        """, (share_id, code, output, expires_at.isoformat()))
+
+        conn.commit()
+        conn.close()
+
+        print(f"[SHARE] Created share: {share_id}")
+
+        return jsonify({
+            "success": True,
+            "id": share_id,
+            "expires_at": expires_at.isoformat()
+        })
+
+    except Exception as e:
+        print(f"[SHARE] Error: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/share/<share_id>", methods=["GET"])
+def get_share(share_id):
+    """Get a shared session"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # Get share and increment view count
+        cursor.execute("""
+            SELECT code, output, views, created_at, expires_at
+            FROM shares WHERE id = ?
+        """, (share_id,))
+
+        result = cursor.fetchone()
+
+        if not result:
+            conn.close()
+            return jsonify({
+                "success": False,
+                "error": "Share not found"
+            }), 404
+
+        code, output, views, created_at, expires_at = result
+
+        # Check if expired
+        if datetime.fromisoformat(expires_at) < datetime.now():
+            conn.close()
+            return jsonify({
+                "success": False,
+                "error": "Share has expired"
+            }), 410
+
+        # Increment view count
+        cursor.execute("""
+            UPDATE shares SET views = views + 1
+            WHERE id = ?
+        """, (share_id,))
+
+        conn.commit()
+        conn.close()
+
+        print(f"[SHARE] Retrieved share: {share_id} (views: {views + 1})")
+
+        return jsonify({
+            "success": True,
+            "code": code,
+            "output": output,
+            "views": views + 1,
+            "created_at": created_at,
+            "expires_at": expires_at
+        })
+
+    except Exception as e:
+        print(f"[SHARE] Error retrieving: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/share/image", methods=["POST"])
+def generate_share_image():
+    """Generate a code image"""
+    try:
+        # Check rate limit
+        if not check_rate_limit():
+            return jsonify({
+                "success": False,
+                "error": "Rate limit exceeded. Please try again later."
+            }), 429
+
+        data = request.get_json()
+        code = data.get("code", "")
+        output = data.get("output", "")
+
+        if not code or not code.strip():
+            return jsonify({
+                "success": False,
+                "error": "Code cannot be empty"
+            }), 400
+
+        if len(code) > 50000:
+            return jsonify({
+                "success": False,
+                "error": "Code too large (max 50KB)"
+            }), 400
+
+        # Generate image
+        img = generate_image(code, output)
+
+        if not img:
+            return jsonify({
+                "success": False,
+                "error": "Failed to generate image"
+            }), 500
+
+        # Generate unique filename
+        image_id = generate_share_id()
+        image_filename = f"{image_id}.png"
+        image_path = os.path.join(SHARE_IMAGES_DIR, image_filename)
+
+        # Save image
+        img.save(image_path, "PNG", optimize=True, quality=85)
+
+        # Calculate expiration (30 days)
+        expires_at = datetime.now() + timedelta(days=30)
+
+        # Store in database (for cleanup)
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO shares (id, code, output, image_path, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (image_id, code[:1000], output[:500], image_path, expires_at.isoformat()))
+
+        conn.commit()
+        conn.close()
+
+        print(f"[SHARE] Generated image: {image_filename}")
+
+        return jsonify({
+            "success": True,
+            "image_url": f"/share-images/{image_filename}",
+            "expires_at": expires_at.isoformat()
+        })
+
+    except Exception as e:
+        print(f"[SHARE] Error generating image: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/share-images/<filename>")
+def serve_share_image(filename):
+    """Serve generated share images"""
+    try:
+        return send_from_directory(SHARE_IMAGES_DIR, filename)
+    except Exception as e:
+        print(f"[SHARE] Error serving image {filename}: {e}")
+        return jsonify({"error": "Image not found"}), 404
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     """Health check endpoint"""
@@ -214,7 +578,8 @@ def compile_endpoint():
         print(f"\n{'='*50}")
         print(f"[API] /api/compile received")
         print(f"[API] Code length: {len(source_code)} chars")
-        print(f"[API] Stdin received: {repr(stdin_input) if stdin_input else '(empty)'}")
+        print(
+            f"[API] Stdin received: {repr(stdin_input) if stdin_input else '(empty)'}")
         print(f"[API] Request keys: {list(data.keys())}")
         print(f"{'='*50}")
 
@@ -254,11 +619,92 @@ def info():
 # Serve React static files
 
 
+@app.route("/s/<share_id>")
+def serve_shared(share_id):
+    """Serve shared session with Open Graph metadata"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT code, output, views, created_at, expires_at, image_path
+            FROM shares WHERE id = ?
+        """, (share_id,))
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if not result:
+            # Share not found, serve regular app
+            return serve("")
+
+        code, output, views, created_at, expires_at, image_path = result
+
+        # Check if expired
+        if datetime.fromisoformat(expires_at) < datetime.now():
+            return serve("")
+
+        # Get first 120 chars of code for description
+        code_preview = code[:120].replace('\n', ' ').replace('"', '&quot;')
+
+        # Generate OG image URL
+        og_image = f"{request.host_url}share-images/{os.path.basename(image_path)}" if image_path else f"{request.host_url}logo.png"
+
+        # Read index.html and inject OG tags
+        index_path = os.path.join(
+            app.static_folder, "index.html")  # type: ignore
+
+        if os.path.exists(index_path):
+            with open(index_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+
+            # Inject OG meta tags
+            og_tags = f"""
+    <meta property="og:title" content="JavaRena - Shared Code Snippet" />
+    <meta property="og:description" content="{code_preview}..." />
+    <meta property="og:image" content="{og_image}" />
+    <meta property="og:url" content="{request.url}" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="JavaRena - Shared Code" />
+    <meta name="twitter:description" content="{code_preview}..." />
+    <meta name="twitter:image" content="{og_image}" />
+    <script>
+        window.__SHARED_SESSION__ = {{
+            id: "{share_id}",
+            code: {json.dumps(code)},
+            output: {json.dumps(output)},
+            views: {views},
+            isFork: true
+        }};
+    </script>
+"""
+
+            # Insert before </head>
+            html_content = html_content.replace('</head>', og_tags + '</head>')
+
+            return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        else:
+            return jsonify({
+                "error": "Frontend not built yet",
+                "message": "Run 'npm run build' to build the React frontend first"
+            }), 404
+
+    except Exception as e:
+        print(f"[SHARE] Error serving shared session: {e}")
+        return serve("")
+
+
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve(path):
     """Serve React static files or index.html for SPA routing"""
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):  # type: ignore
+    # Skip share routes
+    if path.startswith("s/"):
+        return serve_shared(path[2:])
+
+    # type: ignore
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         # pyright: ignore[reportArgumentType]
         return send_from_directory(app.static_folder, path)
     else:
@@ -288,7 +734,8 @@ def _boot_step(label, value, delay=0.15):
     sys.stdout.write(f"  {DIM}[    ]{RESET} {padded_label}")
     sys.stdout.flush()
     time.sleep(delay)
-    sys.stdout.write(f"\r  {GREEN}[ ✓  ]{RESET} {padded_label} {CYAN}{BOLD}{value}{RESET}\n")
+    sys.stdout.write(
+        f"\r  {GREEN}[ ✓  ]{RESET} {padded_label} {CYAN}{BOLD}{value}{RESET}\n")
     sys.stdout.flush()
 
 
@@ -303,7 +750,8 @@ def _boot_step_fail(label, value, delay=0.15):
     sys.stdout.write(f"  {DIM}[    ]{RESET} {padded_label}")
     sys.stdout.flush()
     time.sleep(delay)
-    sys.stdout.write(f"\r  {RED}[ ✗  ]{RESET} {padded_label} {RED}{BOLD}{value}{RESET}\n")
+    sys.stdout.write(
+        f"\r  {RED}[ ✗  ]{RESET} {padded_label} {RED}{BOLD}{value}{RESET}\n")
     sys.stdout.flush()
 
 
@@ -315,7 +763,8 @@ def _get_java_version():
             capture_output=True, text=True, timeout=5
         )
         # java -version prints to stderr
-        ver = result.stderr.strip().split("\n")[0] if result.stderr else "Unknown"
+        ver = result.stderr.strip().split(
+            "\n")[0] if result.stderr else "Unknown"
         return ver
     except Exception:
         return "Not found"
@@ -368,7 +817,8 @@ if __name__ == "__main__":
     print()
 
     # ── Boot header ──
-    print(f"  {YELLOW}{BOLD}[BOOT]{RESET} {DIM}JavaRena v1.0 — Summoning Protocol Initiated{RESET}")
+    print(
+        f"  {YELLOW}{BOLD}[BOOT]{RESET} {DIM}JavaRena v1.0 — Summoning Protocol Initiated{RESET}")
     print()
 
     # ── Pre-flight: check dist folder ──
@@ -376,7 +826,8 @@ if __name__ == "__main__":
         _boot_step_fail("Locating built frontend", "dist/ not found")
         print(f"\n  {YELLOW}Frontend not built yet!{RESET}")
         print(f"  Run this first: {BOLD}npm run build{RESET}")
-        print(f"  Then start the server again with: {BOLD}python server.py{RESET}\n")
+        print(
+            f"  Then start the server again with: {BOLD}python server.py{RESET}\n")
         sys.exit(1)
 
     # ── Step 1: Detect OS ──
@@ -417,14 +868,26 @@ if __name__ == "__main__":
     # ── Step 7: Classloader warmth ──
     _boot_step("Warming the classloader", "Ready")
 
+    # ── Step 8: Initialize share database ──
+    init_share_db()
+    _boot_step("Initializing share database", "SQLite ready")
+
+    # ── Step 9: Start cleanup thread ──
+    cleanup_thread = threading.Thread(
+        target=cleanup_expired_shares, daemon=True)
+    cleanup_thread.start()
+    _boot_step("Starting cleanup daemon", "Background task active")
+
     # ── Final status ──
     print()
     print(f"  {GREEN}{BOLD}[SYSTEM]{RESET} {BOLD}The Arena is open.{RESET}")
-    print(f"  {DIM}[SYSTEM] May your semicolons be plentiful, and your NullPointers few.{RESET}")
+    print(
+        f"  {DIM}[SYSTEM] May your semicolons be plentiful, and your NullPointers few.{RESET}")
     print()
 
     if not JAVA_AVAILABLE:
-        print(f"  {YELLOW}{BOLD}⚠  WARNING:{RESET}{YELLOW} Java compiler (javac) not found!{RESET}")
+        print(
+            f"  {YELLOW}{BOLD}⚠  WARNING:{RESET}{YELLOW} Java compiler (javac) not found!{RESET}")
         print(f"  {YELLOW}   Please install Java Development Kit (JDK){RESET}")
         print()
 

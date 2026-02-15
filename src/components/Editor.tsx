@@ -1,12 +1,14 @@
 import React, { useRef, useState, useEffect } from "react";
 import MonacoEditor, { OnMount, BeforeMount } from "@monaco-editor/react";
-import { FileCode2, Copy, Check, WrapText, Github } from "lucide-react";
+import { FileCode2, Copy, Check, WrapText, Github, Share2 } from "lucide-react";
 import { Theme } from "../App";
+import { ShareDialog } from "./ShareDialog";
 
 interface EditorProps {
   code: string;
   onChange: (value: string | undefined) => void;
   theme: Theme;
+  output?: string;
 }
 
 /* ─────────────────────────────────────────────────────
@@ -238,11 +240,17 @@ const auroraLightStudio = {
    Editor Component
    ───────────────────────────────────────────────────── */
 
-export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
+export const Editor: React.FC<EditorProps> = ({
+  code,
+  onChange,
+  theme,
+  output = "",
+}) => {
   const editorRef = useRef<any>(null);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [copied, setCopied] = useState(false);
   const [wordWrap, setWordWrap] = useState(true);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const lineCount = code.split("\n").length;
   const charCount = code.length;
@@ -379,6 +387,9 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
             ) : (
               <Copy className="w-3.5 h-3.5" />
             )}
+          </IconBtn>
+          <IconBtn onClick={() => setShareDialogOpen(true)} title="Share code">
+            <Share2 className="w-3.5 h-3.5" />
           </IconBtn>
         </div>
 
@@ -541,6 +552,15 @@ export const Editor: React.FC<EditorProps> = ({ code, onChange, theme }) => {
           </a>
         </div>
       </div>
+
+      {/* Share Dialog */}
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        code={code}
+        output={output}
+        theme={theme}
+      />
     </div>
   );
 };
