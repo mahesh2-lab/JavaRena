@@ -38,18 +38,30 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   const { toast } = useToast();
 
   const brandName = "JavaRena";
+  const isDark = theme === "dark";
 
-  // Color palette for green accent theme
-  const colors = {
-    darkBg: "#0D1117",
-    cardBg: "#161B22",
-    inputBg: "#090C10",
-    borderColor: "#30363D",
-    primaryGreen: "#00C853",
-    primaryGreenHover: "#00E676",
-    textPrimary: "#FFFFFF",
-    textMuted: "#8B949E",
-  };
+  // Color palette adapts to theme
+  const colors = isDark
+    ? {
+        darkBg: "#0D1117",
+        cardBg: "#161B22",
+        inputBg: "#090C10",
+        borderColor: "#30363D",
+        primaryGreen: "#00C853",
+        primaryGreenHover: "#00E676",
+        textPrimary: "#FFFFFF",
+        textMuted: "#8B949E",
+      }
+    : {
+        darkBg: "#FFFFFF",
+        cardBg: "#F6F8FA",
+        inputBg: "#EAEEF2",
+        borderColor: "#D0D7DE",
+        primaryGreen: "#00A846",
+        primaryGreenHover: "#00C853",
+        textPrimary: "#1F2328",
+        textMuted: "#656D76",
+      };
 
   const escapeHtml = (text: string) => {
     const div = document.createElement("div");

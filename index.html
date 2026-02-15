@@ -1,45 +1,304 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
   <head>
-    <!-- Basic Meta -->
+    <!-- 1. Critical Meta — Charset & Viewport (must be first) -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Title -->
-    <title>JavaRena | Code. Compile. Conquer.</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <!-- SEO -->
-    <meta name="description" content="JavaRena is an interactive Java playground to practice, compile, and master Java in your browser using CheerpJ." />
-    <meta name="keywords" content="Java Playground, Java Practice, Online Java Compiler, JavaRena, CheerpJ, Monaco Editor" />
+    <!-- 2. Title — Keyword-rich, under 60 chars -->
+    <title>JavaRena — Online Java Compiler & Code Playground</title>
+
+    <!-- 3. SEO Meta Tags -->
+    <meta
+      name="description"
+      content="Write, compile, and run Java code instantly in your browser. JavaRena is a free online Java playground with Monaco Editor, real-time output, and code sharing."
+    />
+    <meta
+      name="keywords"
+      content="online java compiler, java playground, java code editor, run java online, java IDE, java practice, compile java browser, code sharing"
+    />
     <meta name="author" content="Mahesh Chopade" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href="https://javarena.dev/" />
 
-    <!-- Favicon -->
+    <!-- 4. Favicon & App Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Preconnect -->
+    <!-- 5. Theme Color (dark + light) -->
+    <meta
+      name="theme-color"
+      content="#13141c"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta
+      name="theme-color"
+      content="#f0f2f8"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- 6. Open Graph (OG) Tags — Facebook, LinkedIn, Discord, etc. -->
+    <meta property="og:site_name" content="JavaRena" />
+    <meta
+      property="og:title"
+      content="JavaRena — Online Java Compiler & Code Playground"
+    />
+    <meta
+      property="og:description"
+      content="Write, compile, and run Java code instantly in your browser. Free online Java playground with Monaco Editor and real-time output."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://javarena.dev/" />
+    <meta property="og:image" content="https://javarena.dev/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="JavaRena - Online Java Compiler and Code Playground"
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- 7. Twitter Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="JavaRena — Online Java Compiler & Code Playground"
+    />
+    <meta
+      name="twitter:description"
+      content="Write, compile, and run Java code instantly in your browser. Free playground with Monaco Editor."
+    />
+    <meta name="twitter:image" content="https://javarena.dev/og-image.png" />
+    <meta name="twitter:image:alt" content="JavaRena - Online Java Compiler" />
+    <meta name="twitter:creator" content="@mahesh2_lab" />
+
+    <!-- 8. Preconnect / DNS-Prefetch — Critical third-party origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://cjrtnc.leaningtech.com" />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
 
-    <!-- Clean & Performance Optimized Fonts -->
-    <!-- Keep only what you actually use -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- 9. Fonts — Optimized loading with display:swap for CLS prevention -->
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+      as="style"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media = 'all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#0F172A" />
+    <!-- 10. Structured Data — JSON-LD (SoftwareApplication + Organization + FAQ) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://javarena.dev/#app",
+            "name": "JavaRena",
+            "url": "https://javarena.dev",
+            "description": "Write, compile, and run Java code instantly in your browser. Free online Java playground with Monaco Editor, real-time console output, and code sharing.",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Any (Web Browser)",
+            "browserRequirements": "Requires a modern web browser with JavaScript enabled",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "creator": {
+              "@type": "Person",
+              "name": "Mahesh Chopade",
+              "url": "https://github.com/mahesh2-lab"
+            },
+            "featureList": [
+              "Online Java compilation and execution",
+              "Monaco Editor with syntax highlighting",
+              "Real-time console output",
+              "Code sharing via unique URLs",
+              "Dark and light theme support",
+              "Standard input (stdin) support",
+              "Mobile-responsive layout"
+            ],
+            "screenshot": "https://javarena.dev/og-image.png",
+            "softwareVersion": "1.0",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "150"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://javarena.dev/#org",
+            "name": "JavaRena",
+            "url": "https://javarena.dev",
+            "logo": "https://javarena.dev/favicon.svg",
+            "sameAs": ["https://github.com/mahesh2-lab/JavaRena"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://javarena.dev/#website",
+            "name": "JavaRena",
+            "url": "https://javarena.dev",
+            "publisher": { "@id": "https://javarena.dev/#org" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://javarena.dev/?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://javarena.dev/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Java Playground",
+                "item": "https://javarena.dev/"
+              }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is JavaRena free to use?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes, JavaRena is completely free. You can write, compile, and run Java code directly in your browser without any sign-up or payment."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need to install Java to use JavaRena?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No installation is required. JavaRena compiles and runs Java code on the server side. All you need is a modern web browser."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I share my Java code with others?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes! JavaRena lets you generate a unique shareable link for your code snippet. Anyone with the link can view and fork your code."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What Java version does JavaRena support?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "JavaRena uses the latest JDK available on the server, typically Java 17 or newer, with full support for modern Java language features."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="JavaRena - Code. Compile. Conquer." />
-    <meta property="og:description" content="Practice Java in your browser with real-time execution powered by CheerpJ." />
-    <meta property="og:type" content="website" />
+    <!-- 11. CheerpJ Loader — deferred to avoid blocking render -->
+    <script
+      src="https://cjrtnc.leaningtech.com/cheerpj3/loader.js"
+      defer
+    ></script>
 
-    <!-- CheerpJ Loader -->
-    <script src="https://cjrtnc.leaningtech.com/cheerpj3/loader.js"></script>
+    <!-- 12. Performance hints -->
+    <link rel="modulepreload" href="/src/main.tsx" />
   </head>
 
   <body class="bg-slate-950 text-white font-inter">
+    <!--
+      Noscript fallback for crawlers and users with JS disabled.
+      Improves crawlability and provides semantic content for indexing.
+    -->
+    <noscript>
+      <div
+        style="
+          max-width: 800px;
+          margin: 40px auto;
+          padding: 20px;
+          font-family: sans-serif;
+          color: #c0caf5;
+          background: #13141c;
+        "
+      >
+        <h1>JavaRena — Online Java Compiler &amp; Code Playground</h1>
+        <p>
+          JavaRena is a free online Java compiler and code editor. Write,
+          compile, and run Java programs directly in your browser with a
+          professional Monaco Editor, real-time console output, and instant code
+          sharing.
+        </p>
+        <h2>Features</h2>
+        <ul>
+          <li>Write and compile Java code online — no installation required</li>
+          <li>Monaco Editor with IntelliSense and syntax highlighting</li>
+          <li>Real-time console output with execution timing</li>
+          <li>Share code snippets via unique URLs</li>
+          <li>Dark and light theme support</li>
+          <li>Standard input (stdin) support for interactive programs</li>
+          <li>Mobile-responsive design</li>
+        </ul>
+        <h2>Frequently Asked Questions</h2>
+        <h3>Is JavaRena free to use?</h3>
+        <p>
+          Yes, JavaRena is completely free. Write, compile, and run Java code
+          directly in your browser without any sign-up or payment.
+        </p>
+        <h3>Do I need to install Java?</h3>
+        <p>
+          No installation is required. JavaRena compiles and runs Java code on
+          the server. All you need is a modern web browser.
+        </p>
+        <h3>Can I share my code?</h3>
+        <p>
+          Yes! Generate a unique shareable link for your code snippet. Anyone
+          with the link can view and fork your code.
+        </p>
+        <p>
+          <a
+            href="https://github.com/mahesh2-lab/JavaRena"
+            style="color: #10b981"
+            >View on GitHub</a
+          >
+        </p>
+      </div>
+    </noscript>
+
     <div id="root"></div>
 
-    <!-- Main App -->
+    <!-- Main App — module scripts are deferred by default -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

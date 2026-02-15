@@ -5,6 +5,7 @@ import { Console, LogEntry } from "./components/Console";
 import { useCheerpJ } from "./hooks/useCheerpJ";
 import { useIsMobile } from "./hooks/use-mobile";
 import { Toaster } from "./components/ui/toaster";
+import { SEOHead } from "./components/SEOHead";
 
 const DEFAULT_CODE = `public class Main {
     public static void main(String[] args) {
@@ -268,12 +269,34 @@ export default function App() {
     <div
       data-theme={theme}
       className="flex flex-col h-screen w-screen overflow-hidden"
+      role="application"
+      aria-label="JavaRena - Online Java Compiler"
       style={{
         background: "var(--bg-root)",
         color: "var(--text-primary)",
         fontFamily: "'Outfit', 'Inter', -apple-system, sans-serif",
       }}
     >
+      {/* Visually hidden H1 for SEO — ensures proper heading hierarchy */}
+      <h1 className="sr-only">
+        JavaRena — Online Java Compiler &amp; Code Playground
+      </h1>
+
+      {/* Dynamic SEO meta tags */}
+      <SEOHead
+        title={
+          isForkedSession
+            ? "Shared Java Code — JavaRena Playground"
+            : "JavaRena — Online Java Compiler & Code Playground"
+        }
+        description={
+          isForkedSession
+            ? "View and run this shared Java code snippet on JavaRena. Free online Java compiler with Monaco Editor."
+            : "Write, compile, and run Java code instantly in your browser. Free online Java playground with Monaco Editor and real-time output."
+        }
+        canonicalUrl="https://javarena.dev/"
+      />
+
       {/* Top Navigation Bar */}
       <Navbar
         theme={theme}
@@ -288,21 +311,31 @@ export default function App() {
       />
 
       {/* Main Content: Mobile Tab View or Desktop Split View */}
-      <main className="flex flex-1 overflow-hidden responsive-main">
+      <main
+        className="flex flex-1 overflow-hidden responsive-main"
+        role="main"
+        aria-label="Java code editor and console output"
+      >
         {isMobile ? (
           // ═══════════════════════════════════════════════════════
           // Mobile Layout: Tabbed Interface
           // ═══════════════════════════════════════════════════════
           <div className="flex flex-col w-full h-full">
             {/* Tab Navigation */}
-            <div
+            <nav
               className="flex gap-0 shrink-0 border-b"
+              role="tablist"
+              aria-label="Editor and output tabs"
               style={{
                 background: "var(--bg-panel-header)",
                 borderColor: "var(--border-subtle)",
               }}
             >
               <button
+                role="tab"
+                aria-selected={mobileActiveTab === "editor"}
+                aria-controls="editor-panel"
+                id="editor-tab"
                 onClick={() => setMobileActiveTab("editor")}
                 className="flex-1 py-3 px-4 text-sm font-medium transition-colors"
                 style={{
@@ -320,6 +353,10 @@ export default function App() {
                 Editor
               </button>
               <button
+                role="tab"
+                aria-selected={mobileActiveTab === "console"}
+                aria-controls="console-panel"
+                id="console-tab"
                 onClick={() => setMobileActiveTab("console")}
                 className="flex-1 py-3 px-4 text-sm font-medium transition-colors"
                 style={{
@@ -336,21 +373,31 @@ export default function App() {
               >
                 Output
               </button>
-            </div>
+            </nav>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-hidden">
               {mobileActiveTab === "editor" ? (
-                <div className="h-full w-full">
+                <section
+                  id="editor-panel"
+                  role="tabpanel"
+                  aria-labelledby="editor-tab"
+                  className="h-full w-full"
+                >
                   <Editor
                     code={code}
                     onChange={handleCodeChange}
                     theme={theme}
                     output={output.map((o) => o.text).join("\n")}
                   />
-                </div>
+                </section>
               ) : (
-                <div className="h-full w-full">
+                <section
+                  id="console-panel"
+                  role="tabpanel"
+                  aria-labelledby="console-tab"
+                  className="h-full w-full"
+                >
                   <Console
                     output={output}
                     executionTime={execTime}
@@ -359,7 +406,7 @@ export default function App() {
                     stdinInput={stdinInput}
                     onStdinChange={setStdinInput}
                   />
-                </div>
+                </section>
               )}
             </div>
           </div>
@@ -369,7 +416,8 @@ export default function App() {
           // ═══════════════════════════════════════════════════════
           <>
             {/* Left: Code Editor Panel */}
-            <div
+            <section
+              aria-label="Java code editor"
               className="flex flex-col min-h-0 responsive-editor"
               style={{
                 width: showConsole ? `${editorWidth}%` : "100%",
@@ -382,12 +430,16 @@ export default function App() {
                 theme={theme}
                 output={output.map((o) => o.text).join("\n")}
               />
-            </div>
+            </section>
 
             {showConsole && (
               <>
                 {/* Resizable Divider */}
                 <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize editor and console panels"
+                  tabIndex={0}
                   className="theme-divider shrink-0 responsive-divider group"
                   style={{
                     width: "5px",
@@ -415,7 +467,8 @@ export default function App() {
                 </div>
 
                 {/* Right: Console Output Panel */}
-                <div
+                <section
+                  aria-label="Console output"
                   className="flex flex-col min-h-0 responsive-console"
                   style={{
                     width: `${100 - editorWidth}%`,
@@ -430,12 +483,30 @@ export default function App() {
                     stdinInput={stdinInput}
                     onStdinChange={setStdinInput}
                   />
-                </div>
+                </section>
               </>
             )}
           </>
         )}
       </main>
+
+      {/* Visually hidden footer for SEO — crawlable semantic content */}
+      <footer className="sr-only" aria-label="Site information">
+        <p>
+          JavaRena is a free online Java compiler and code playground. Built
+          with React, Monaco Editor, and Flask.
+        </p>
+        <nav aria-label="Footer links">
+          <a href="https://github.com/mahesh2-lab/JavaRena">
+            GitHub Repository
+          </a>
+        </nav>
+        <p>
+          &copy; {new Date().getFullYear()} JavaRena by Mahesh Chopade. All
+          rights reserved.
+        </p>
+      </footer>
+
       <Toaster />
     </div>
   );

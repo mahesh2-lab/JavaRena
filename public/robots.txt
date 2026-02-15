@@ -1,0 +1,26 @@
+# JavaRena — robots.txt
+# https://javarena.dev/robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /share-images/
+Disallow: /__pycache__/
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://javarena.dev/sitemap.xml
+
+# Google-specific directives
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Crawl-delay: 0
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Crawl-delay: 1

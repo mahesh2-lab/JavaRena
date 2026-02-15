@@ -1,5 +1,12 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Trash2, Terminal, ChevronRight, Keyboard, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Trash2,
+  Terminal,
+  ChevronRight,
+  Keyboard,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { FlickeringGrid } from "./ui/flickering-grid";
 import { Theme } from "../App";
 
@@ -39,6 +46,8 @@ export const Console: React.FC<ConsoleProps> = ({
   return (
     <div
       className="flex flex-col h-full"
+      role="region"
+      aria-label="Console output panel"
       style={{ background: "var(--bg-console)" }}
     >
       {/* Console Header */}
@@ -99,7 +108,7 @@ export const Console: React.FC<ConsoleProps> = ({
             el.style.color = "var(--text-muted)";
           }}
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </div>
 
@@ -121,14 +130,22 @@ export const Console: React.FC<ConsoleProps> = ({
             cursor: "pointer",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-surface-hover)";
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "var(--bg-surface-hover)";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-surface)";
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "var(--bg-surface)";
           }}
         >
-          <Keyboard className="w-3.5 h-3.5" style={{ color: "var(--accent-terminal)" }} />
-          <span className="font-semibold uppercase tracking-[0.1em]" style={{ fontFamily: "'Outfit', sans-serif" }}>
+          <Keyboard
+            className="w-3.5 h-3.5"
+            style={{ color: "var(--accent-terminal)" }}
+          />
+          <span
+            className="font-semibold uppercase tracking-[0.1em]"
+            style={{ fontFamily: "'Outfit', sans-serif" }}
+          >
             Stdin Input
           </span>
           {stdinInput && (
@@ -139,7 +156,8 @@ export const Console: React.FC<ConsoleProps> = ({
                 color: "var(--status-text)",
               }}
             >
-              {stdinInput.split("\n").length} line{stdinInput.split("\n").length > 1 ? "s" : ""}
+              {stdinInput.split("\n").length} line
+              {stdinInput.split("\n").length > 1 ? "s" : ""}
             </span>
           )}
           <span className="ml-auto">
@@ -153,12 +171,16 @@ export const Console: React.FC<ConsoleProps> = ({
 
         {/* Stdin Textarea */}
         {showStdin && (
-          <div className="px-4 py-2" style={{ background: "var(--bg-panel-header)" }}>
+          <div
+            className="px-4 py-2"
+            style={{ background: "var(--bg-panel-header)" }}
+          >
             <textarea
               value={stdinInput}
               onChange={(e) => onStdinChange(e.target.value)}
               placeholder="Enter input values here (one per line for multiple inputs)..."
               rows={3}
+              aria-label="Standard input for Java program"
               className="w-full rounded-md px-3 py-2 text-xs font-mono resize-y focus:outline-none transition-colors duration-200"
               style={{
                 background: "var(--bg-editor)",
@@ -169,15 +191,18 @@ export const Console: React.FC<ConsoleProps> = ({
                 fontFamily: "'JetBrains Mono', monospace",
               }}
               onFocus={(e) => {
-                (e.currentTarget as HTMLTextAreaElement).style.borderColor = "var(--accent-terminal)";
+                (e.currentTarget as HTMLTextAreaElement).style.borderColor =
+                  "var(--accent-terminal)";
               }}
               onBlur={(e) => {
-                (e.currentTarget as HTMLTextAreaElement).style.borderColor = "var(--border-subtle)";
+                (e.currentTarget as HTMLTextAreaElement).style.borderColor =
+                  "var(--border-subtle)";
               }}
             />
             <div className="flex items-center justify-between mt-1.5">
               <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                Provide input for Scanner / System.in — each line is a separate input
+                Provide input for Scanner / System.in — each line is a separate
+                input
               </p>
               {stdinInput && (
                 <button
@@ -226,7 +251,12 @@ export const Console: React.FC<ConsoleProps> = ({
         </div>
 
         {/* Scrollable console content on top */}
-        <div className="absolute inset-0 overflow-auto p-4 font-mono text-sm">
+        <div
+          className="absolute inset-0 overflow-auto p-4 font-mono text-sm"
+          role="log"
+          aria-live="polite"
+          aria-label="Program output"
+        >
           {output.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 select-none">
               <Terminal

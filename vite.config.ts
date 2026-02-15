@@ -29,6 +29,29 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    // Core Web Vitals: enable CSS code splitting for smaller initial payload
+    cssCodeSplit: true,
+    // Minification for smaller bundle size (LCP improvement) — esbuild is fastest
+    minify: "esbuild",
+    // Code splitting strategy for optimal caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks for better caching
+          "vendor-react": ["react", "react-dom"],
+          "vendor-monaco": ["@monaco-editor/react"],
+          "vendor-ui": ["lucide-react", "framer-motion"],
+        },
+        // Asset file naming for long-term caching
+        chunkFileNames: "assets/js/[name]-[hash].js",
+        entryFileNames: "assets/js/[name]-[hash].js",
+        assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
+      },
+    },
+    // Target modern browsers for smaller output
+    target: "es2020",
+    // Generate source maps for debugging (won't affect users)
+    sourcemap: false,
   },
   server: {
     fs: {

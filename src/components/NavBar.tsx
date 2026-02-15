@@ -45,8 +45,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <nav
+    <header
       className="h-14 flex items-center justify-between px-5 shrink-0 relative z-50 responsive-navbar"
+      role="banner"
       style={{
         background: "var(--bg-navbar)",
         borderBottom: "1px solid var(--bg-navbar-border)",
@@ -54,18 +55,27 @@ export const Navbar: React.FC<NavbarProps> = ({
     >
       {/* Left: Logo */}
       <div className="flex items-center gap-2.5">
-        <Zap className="w-5 h-5" style={{ color: "var(--logo-accent-from)" }} />
-        <span
+        <Zap
+          className="w-5 h-5"
+          aria-hidden="true"
+          style={{ color: "var(--logo-accent-from)" }}
+        />
+        <a
+          href="/"
+          aria-label="JavaRena - Home"
           className="text-[15px] font-semibold tracking-tight"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
+          style={{ fontFamily: "'Outfit', sans-serif", textDecoration: "none" }}
         >
           <span style={{ color: "var(--logo-text)" }}>Java</span>
           <span className="text-gradient">Rena</span>
-        </span>
+        </a>
       </div>
 
       {/* Center: Run Button */}
-      <div className="flex items-center gap-2">
+      <nav
+        className="flex items-center gap-2"
+        aria-label="Code execution controls"
+      >
         {/* Run Button */}
         <button
           id="run-button"
@@ -122,10 +132,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
           {!isMobile && <span>{isRunning ? "Running" : "Run"}</span>}
         </button>
-      </div>
+      </nav>
 
       {/* Right: Status + Settings */}
-      <div className="flex items-center gap-2 sm:gap-4 justify-end">
+      <nav
+        className="flex items-center gap-2 sm:gap-4 justify-end"
+        aria-label="Settings and tools"
+      >
         {/* Status Indicator - Desktop only */}
         {!isMobile && (
           <div
@@ -364,7 +377,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </>
           )}
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };

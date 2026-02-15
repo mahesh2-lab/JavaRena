@@ -50,6 +50,35 @@ from nanoid import generate
 app = Flask(__name__, static_folder='dist', static_url_path='')
 CORS(app)
 
+
+# ── Security Headers Middleware (SEO Trust Signals) ──
+@app.after_request
+def add_security_headers(response):
+    """Add security and performance headers to all responses.
+    These improve SEO trust signals and Core Web Vitals scores."""
+    # Security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+
+    # HTTPS enforcement (uncomment in production with real HTTPS)
+    # response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+
+    # Performance: cache static assets aggressively
+    if response.content_type and ('javascript' in response.content_type or
+        'css' in response.content_type or
+        'image' in response.content_type or
+        'font' in response.content_type or
+        'svg' in response.content_type):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif response.content_type and 'text/html' in response.content_type:
+        # HTML should be revalidated (for SPA updates)
+        response.headers['Cache-Control'] = 'public, max-age=0, must-revalidate'
+
+    return response
+
 # Detect OS
 SYSTEM = platform.system()
 IS_WINDOWS = SYSTEM == "Windows"
@@ -618,7 +647,8 @@ def info():
 
 @app.route("/s/<share_id>")
 def serve_shared(share_id):
-    """Serve shared session with Open Graph metadata"""
+    """Serve shared session with comprehensive Open Graph + SEO metadata.
+    This is critical for social sharing previews and crawler indexing."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -641,11 +671,12 @@ def serve_shared(share_id):
         if datetime.fromisoformat(expires_at) < datetime.now():
             return serve("")
 
-        # Get first 120 chars of code for description
-        code_preview = code[:120].replace('\n', ' ').replace('"', '&quot;')
+        # Get first 150 chars of code for description (SEO optimized length)
+        code_preview = code[:150].replace('\n', ' ').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
 
         # Generate OG image URL
-        og_image = f"{request.host_url}share-images/{os.path.basename(image_path)}" if image_path else f"{request.host_url}logo.png"
+        og_image = f"{request.host_url}share-images/{os.path.basename(image_path)}" if image_path else f"{request.host_url}og-image.png"
+        share_url = f"{request.host_url}s/{share_id}"
 
         # Read index.html and inject OG tags
         index_path = os.path.join(
@@ -655,17 +686,48 @@ def serve_shared(share_id):
             with open(index_path, 'r', encoding='utf-8') as f:
                 html_content = f.read()
 
-            # Inject OG meta tags
+            # Replace default meta tags with share-specific ones
+            html_content = html_content.replace(
+                '<title>JavaRena — Online Java Compiler & Code Playground</title>',
+                f'<title>Shared Java Code — JavaRena Playground</title>'
+            )
+
+            # Inject share-specific OG meta tags + JSON-LD for shared snippet
             og_tags = f"""
-    <meta property="og:title" content="JavaRena - Shared Code Snippet" />
+    <!-- Share-specific SEO overrides -->
+    <meta property="og:title" content="Shared Java Code — JavaRena Playground" />
     <meta property="og:description" content="{code_preview}..." />
     <meta property="og:image" content="{og_image}" />
-    <meta property="og:url" content="{request.url}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="{share_url}" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="JavaRena - Shared Code" />
+    <meta name="twitter:title" content="Shared Java Code — JavaRena" />
     <meta name="twitter:description" content="{code_preview}..." />
     <meta name="twitter:image" content="{og_image}" />
+    <link rel="canonical" href="{share_url}" />
+    <meta name="robots" content="noindex, follow" />
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "CreativeWork",
+      "name": "Shared Java Code Snippet",
+      "description": "{code_preview}...",
+      "url": "{share_url}",
+      "dateCreated": "{created_at}",
+      "interactionStatistic": {{
+        "@type": "InteractionCounter",
+        "interactionType": "https://schema.org/ViewAction",
+        "userInteractionCount": {views}
+      }},
+      "isPartOf": {{
+        "@type": "WebApplication",
+        "name": "JavaRena",
+        "url": "{request.host_url}"
+      }}
+    }}
+    </script>
     <script>
         window.__SHARED_SESSION__ = {{
             id: "{share_id}",
