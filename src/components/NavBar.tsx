@@ -83,10 +83,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           disabled={!isReady || isRunning}
           title={isRunning ? "Running..." : "Run Code"}
           className={`flex items-center justify-center font-semibold transition-all duration-150 shadow-sm ${
-            isMobile ? "rounded-full" : "gap-2.5 rounded-md text-sm px-5 py-2"
+            isMobile
+              ? "gap-1.5 rounded-md text-xs px-3 py-1.5"
+              : "gap-2.5 rounded-md text-sm px-5 py-2"
           }`}
           style={{
-            ...(isMobile ? { width: "34px", height: "34px", padding: 0 } : {}),
+            ...(isMobile ? {} : {}),
             background:
               !isReady || isRunning
                 ? "var(--btn-disabled-bg)"
@@ -130,7 +132,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }
             />
           )}
-          {!isMobile && <span>{isRunning ? "Running" : "Run"}</span>}
+          <span>{isRunning ? "Running" : "Run"}</span>
         </button>
       </nav>
 

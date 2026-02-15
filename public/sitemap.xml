@@ -16,17 +16,17 @@
     </image:image>
   </url>
 
-  <!--
-    Shared code snippets are dynamically generated.
+  
+    <!-- Shared code snippets are dynamically generated.
     For a production deployment, consider generating sitemap entries
     for popular/public shared snippets via the /api/share endpoint.
-    Example:
+    Example: -->
     <url>
       <loc>https://javarena.hostmyidea.me/s/{share_id}</loc>
       <lastmod>{created_at}</lastmod>
       <changefreq>never</changefreq>
       <priority>0.4</priority>
     </url>
-  -->
+ 
 
 </urlset>
