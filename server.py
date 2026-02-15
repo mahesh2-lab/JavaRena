@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 REQUIRED_PACKAGES = {
     "flask": "Flask",
     "flask_cors": "flask-cors",
-    "PIL": "Pillow",
     "nanoid": "nanoid",
     "waitress": "waitress",
 }
@@ -44,10 +43,8 @@ if _missing:
 
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import re
 from nanoid import generate
-from snippet import generate_image
 
 # Create Flask app with proper static folder configuration
 app = Flask(__name__, static_folder='dist', static_url_path='')
