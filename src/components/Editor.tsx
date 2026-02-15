@@ -1,8 +1,19 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import MonacoEditor, { OnMount, BeforeMount } from "@monaco-editor/react";
-import { FileCode2, Copy, Check, WrapText, Github, Share2 } from "lucide-react";
+import {
+  FileCode2,
+  Copy,
+  Check,
+  WrapText,
+  Github,
+  Share2,
+  Settings2,
+  Minus,
+  Plus,
+} from "lucide-react";
 import { Theme } from "../App";
 import { ShareDialog } from "./ShareDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 interface EditorProps {
   code: string;
@@ -251,6 +262,33 @@ export const Editor: React.FC<EditorProps> = ({
   const [copied, setCopied] = useState(false);
   const [wordWrap, setWordWrap] = useState(true);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Editor settings with localStorage persistence
+  const [fontSize, setFontSize] = useState<number>(
+    () => Number(localStorage.getItem("editor_fontSize")) || 14,
+  );
+  const [tabSize, setTabSize] = useState<number>(
+    () => Number(localStorage.getItem("editor_tabSize")) || 4,
+  );
+  const [minimap, setMinimap] = useState<boolean>(
+    () => localStorage.getItem("editor_minimap") === "true",
+  );
+  const [lineNumbers, setLineNumbers] = useState<boolean>(
+    () => localStorage.getItem("editor_lineNumbers") !== "false",
+  );
+  const [ligatures, setLigatures] = useState<boolean>(
+    () => localStorage.getItem("editor_ligatures") !== "false",
+  );
+  const [bracketColors, setBracketColors] = useState<boolean>(
+    () => localStorage.getItem("editor_bracketColors") !== "false",
+  );
+  const [whitespace, setWhitespace] = useState<string>(
+    () => localStorage.getItem("editor_whitespace") || "none",
+  );
+  const [cursorStyle, setCursorStyleState] = useState<string>(
+    () => localStorage.getItem("editor_cursorStyle") || "line",
+  );
 
   const lineCount = code.split("\n").length;
   const charCount = code.length;
@@ -291,6 +329,65 @@ export const Editor: React.FC<EditorProps> = ({
     const next = !wordWrap;
     setWordWrap(next);
     editorRef.current?.updateOptions({ wordWrap: next ? "on" : "off" });
+  };
+
+  // Persist and apply a setting change
+  const updateSetting = useCallback(
+    (key: string, value: any, monacoOption: Record<string, any>) => {
+      localStorage.setItem(`editor_${key}`, String(value));
+      editorRef.current?.updateOptions(monacoOption);
+    },
+    [],
+  );
+
+  const handleFontSize = (delta: number) => {
+    const next = Math.min(28, Math.max(10, fontSize + delta));
+    setFontSize(next);
+    updateSetting("fontSize", next, { fontSize: next });
+  };
+
+  const handleTabSize = (size: number) => {
+    setTabSize(size);
+    updateSetting("tabSize", size, { tabSize: size });
+    editorRef.current?.getModel()?.updateOptions({ tabSize: size });
+  };
+
+  const handleMinimap = () => {
+    const next = !minimap;
+    setMinimap(next);
+    updateSetting("minimap", next, { minimap: { enabled: next } });
+  };
+
+  const handleLineNumbers = () => {
+    const next = !lineNumbers;
+    setLineNumbers(next);
+    updateSetting("lineNumbers", next, {
+      lineNumbers: next ? "on" : "off",
+    });
+  };
+
+  const handleLigatures = () => {
+    const next = !ligatures;
+    setLigatures(next);
+    updateSetting("ligatures", next, { fontLigatures: next });
+  };
+
+  const handleBracketColors = () => {
+    const next = !bracketColors;
+    setBracketColors(next);
+    updateSetting("bracketColors", next, {
+      "bracketPairColorization.enabled": next,
+    });
+  };
+
+  const handleWhitespace = (val: string) => {
+    setWhitespace(val);
+    updateSetting("whitespace", val, { renderWhitespace: val });
+  };
+
+  const handleCursorStyle = (val: string) => {
+    setCursorStyleState(val);
+    updateSetting("cursorStyle", val, { cursorStyle: val });
   };
 
   const IconBtn = ({
@@ -391,6 +488,192 @@ export const Editor: React.FC<EditorProps> = ({
           <IconBtn onClick={() => setShareDialogOpen(true)} title="Share code">
             <Share2 className="w-3.5 h-3.5" />
           </IconBtn>
+
+          {/* Settings Popover */}
+          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <PopoverTrigger asChild>
+              <button
+                title="Editor settings"
+                className="p-1 rounded transition-all duration-150"
+                style={{ color: "var(--text-muted)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-surface-hover)";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-muted)";
+                }}
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              sideOffset={8}
+              className="w-[280px] p-0 border-0"
+              style={{
+                background: theme === "dark" ? "#1a1b26" : "#ffffff",
+                border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"}`,
+                borderRadius: 12,
+                boxShadow:
+                  theme === "dark"
+                    ? "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)"
+                    : "0 20px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
+              }}
+            >
+              {/* Header */}
+              <div
+                className="px-4 py-3 flex items-center gap-2.5"
+                style={{
+                  borderBottom: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}`,
+                }}
+              >
+                <Settings2
+                  className="w-4 h-4"
+                  style={{ color: theme === "dark" ? "#10b981" : "#16a34a" }}
+                />
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: theme === "dark" ? "#c0caf5" : "#1e293b" }}
+                >
+                  Editor Settings
+                </span>
+              </div>
+
+              {/* Settings List */}
+              <div
+                className="py-3 px-4 space-y-4 max-h-[360px] overflow-y-auto"
+                style={{ scrollbarWidth: "thin" }}
+              >
+                {/* Font Size */}
+                <SettingRow label="Font Size" theme={theme}>
+                  <div className="flex items-center gap-1.5">
+                    <SettingSmallBtn
+                      onClick={() => handleFontSize(-1)}
+                      theme={theme}
+                    >
+                      <Minus className="w-3 h-3" />
+                    </SettingSmallBtn>
+                    <span
+                      className="text-xs font-mono w-7 text-center tabular-nums"
+                      style={{
+                        color: theme === "dark" ? "#c0caf5" : "#1e293b",
+                      }}
+                    >
+                      {fontSize}
+                    </span>
+                    <SettingSmallBtn
+                      onClick={() => handleFontSize(1)}
+                      theme={theme}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </SettingSmallBtn>
+                  </div>
+                </SettingRow>
+
+                {/* Tab Size */}
+                <SettingRow label="Tab Size" theme={theme}>
+                  <div className="flex items-center gap-1">
+                    {[2, 4, 8].map((size) => {
+                      const active = tabSize === size;
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => handleTabSize(size)}
+                          className="px-2.5 py-1 rounded-md text-[11px] font-mono font-medium transition-all duration-150"
+                          style={{
+                            background: active
+                              ? theme === "dark"
+                                ? "#10b981"
+                                : "#16a34a"
+                              : theme === "dark"
+                                ? "rgba(255,255,255,0.06)"
+                                : "rgba(0,0,0,0.05)",
+                            color: active
+                              ? "#fff"
+                              : theme === "dark"
+                                ? "#8b949e"
+                                : "#64748b",
+                          }}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </SettingRow>
+
+                {/* Cursor Style */}
+                <SettingRow label="Cursor" theme={theme}>
+                  <StyledSelect
+                    value={cursorStyle}
+                    onChange={(e) => handleCursorStyle(e.target.value)}
+                    theme={theme}
+                  >
+                    <option value="line">Line</option>
+                    <option value="block">Block</option>
+                    <option value="underline">Underline</option>
+                    <option value="line-thin">Thin Line</option>
+                    <option value="block-outline">Block Outline</option>
+                    <option value="underline-thin">Thin Underline</option>
+                  </StyledSelect>
+                </SettingRow>
+
+                {/* Whitespace */}
+                <SettingRow label="Whitespace" theme={theme}>
+                  <StyledSelect
+                    value={whitespace}
+                    onChange={(e) => handleWhitespace(e.target.value)}
+                    theme={theme}
+                  >
+                    <option value="none">None</option>
+                    <option value="boundary">Boundary</option>
+                    <option value="selection">Selection</option>
+                    <option value="trailing">Trailing</option>
+                    <option value="all">All</option>
+                  </StyledSelect>
+                </SettingRow>
+
+                {/* Divider */}
+                <div
+                  style={{
+                    height: 1,
+                    background:
+                      theme === "dark"
+                        ? "rgba(255,255,255,0.06)"
+                        : "rgba(0,0,0,0.07)",
+                  }}
+                />
+
+                {/* Toggles */}
+                <SettingsToggle
+                  label="Minimap"
+                  checked={minimap}
+                  onChange={handleMinimap}
+                  theme={theme}
+                />
+                <SettingsToggle
+                  label="Line Numbers"
+                  checked={lineNumbers}
+                  onChange={handleLineNumbers}
+                  theme={theme}
+                />
+                <SettingsToggle
+                  label="Font Ligatures"
+                  checked={ligatures}
+                  onChange={handleLigatures}
+                  theme={theme}
+                />
+                <SettingsToggle
+                  label="Bracket Colors"
+                  checked={bracketColors}
+                  onChange={handleBracketColors}
+                  theme={theme}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Language badge */}
@@ -423,28 +706,28 @@ export const Editor: React.FC<EditorProps> = ({
           options={{
             fontFamily:
               "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-            fontSize: 14,
-            fontLigatures: true,
+            fontSize,
+            fontLigatures: ligatures,
             lineHeight: 24,
             letterSpacing: 0.4,
-            minimap: { enabled: false },
+            minimap: { enabled: minimap },
             wordWrap: wordWrap ? "on" : "off",
             smoothScrolling: true,
             cursorBlinking: "smooth",
             cursorSmoothCaretAnimation: "on",
-            cursorStyle: "line",
+            cursorStyle: cursorStyle as any,
             cursorWidth: 2,
             padding: { top: 20, bottom: 20 },
             renderLineHighlight: "all",
             renderLineHighlightOnlyWhenFocus: false,
             scrollBeyondLastLine: false,
-            lineNumbers: "on",
+            lineNumbers: lineNumbers ? "on" : "off",
             lineDecorationsWidth: 16,
             lineNumbersMinChars: 3,
             folding: true,
             foldingHighlight: true,
             showFoldingControls: "mouseover",
-            bracketPairColorization: { enabled: true },
+            bracketPairColorization: { enabled: bracketColors },
             guides: {
               bracketPairs: true,
               bracketPairsHorizontal: true,
@@ -455,7 +738,7 @@ export const Editor: React.FC<EditorProps> = ({
             matchBrackets: "always",
             overviewRulerBorder: false,
             hideCursorInOverviewRuler: true,
-            renderWhitespace: "none",
+            renderWhitespace: whitespace as any,
             suggestOnTriggerCharacters: true,
             quickSuggestions: true,
             parameterHints: { enabled: true },
@@ -504,6 +787,12 @@ export const Editor: React.FC<EditorProps> = ({
           >
             {charCount} chars
           </span>
+          <span
+            className="text-[11px] font-mono hidden sm:inline"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Tab: {tabSize}
+          </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <span
@@ -516,7 +805,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="text-[11px] font-mono hidden md:inline"
             style={{ color: "var(--text-muted)" }}
           >
-            Spaces: 4
+            Font: {fontSize}px
           </span>
           <span
             className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded hidden lg:inline"
@@ -564,3 +853,133 @@ export const Editor: React.FC<EditorProps> = ({
     </div>
   );
 };
+
+/* ── Helper components for Settings panel ── */
+
+const SettingRow: React.FC<{
+  label: string;
+  theme: Theme;
+  children: React.ReactNode;
+}> = ({ label, theme, children }) => (
+  <div className="flex items-center justify-between">
+    <span
+      className="text-xs font-medium"
+      style={{ color: theme === "dark" ? "#8b949e" : "#64748b" }}
+    >
+      {label}
+    </span>
+    {children}
+  </div>
+);
+
+const SettingSmallBtn: React.FC<{
+  onClick: () => void;
+  theme: Theme;
+  children: React.ReactNode;
+}> = ({ onClick, theme, children }) => (
+  <button
+    onClick={onClick}
+    className="w-7 h-7 rounded-md flex items-center justify-center transition-all duration-150 active:scale-95"
+    style={{
+      background:
+        theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+      color: theme === "dark" ? "#a9b1d6" : "#475569",
+      border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+    }}
+  >
+    {children}
+  </button>
+);
+
+const StyledSelect: React.FC<{
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  theme: Theme;
+  children: React.ReactNode;
+}> = ({ value, onChange, theme, children }) => {
+  const isDark = theme === "dark";
+  const optionBg = isDark ? "#1a1b26" : "#ffffff";
+  const optionColor = isDark ? "#c0caf5" : "#1e293b";
+
+  // Clone children to inject option styles
+  const styledChildren = React.Children.map(children, (child) => {
+    if (
+      React.isValidElement<React.OptionHTMLAttributes<HTMLOptionElement>>(
+        child,
+      ) &&
+      child.type === "option"
+    ) {
+      return React.cloneElement(child, {
+        style: {
+          background: optionBg,
+          color: optionColor,
+          padding: "6px 8px",
+          ...(child.props.style || {}),
+        },
+      });
+    }
+    return child;
+  });
+
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className="text-[11px] font-mono rounded-md px-2.5 py-1.5 outline-none cursor-pointer transition-colors duration-150 appearance-none"
+      style={{
+        background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+        color: isDark ? "#c0caf5" : "#1e293b",
+        border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='${isDark ? "%238b949e" : "%2364748b"}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "right 6px center",
+        paddingRight: 22,
+        colorScheme: isDark ? "dark" : "light",
+      }}
+    >
+      {styledChildren}
+    </select>
+  );
+};
+
+const SettingsToggle: React.FC<{
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+  theme: Theme;
+}> = ({ label, checked, onChange, theme }) => (
+  <div className="flex items-center justify-between">
+    <span
+      className="text-xs font-medium"
+      style={{ color: theme === "dark" ? "#8b949e" : "#64748b" }}
+    >
+      {label}
+    </span>
+    <button
+      onClick={onChange}
+      className="relative w-9 h-5 rounded-full transition-colors duration-200"
+      style={{
+        background: checked
+          ? theme === "dark"
+            ? "#10b981"
+            : "#16a34a"
+          : theme === "dark"
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.12)",
+      }}
+    >
+      <span
+        className="absolute top-[3px] w-[14px] h-[14px] rounded-full transition-all duration-200 shadow-sm"
+        style={{
+          background: checked
+            ? "#fff"
+            : theme === "dark"
+              ? "#6b7280"
+              : "#9ca3af",
+          left: 3,
+          transform: checked ? "translateX(16px)" : "translateX(0)",
+        }}
+      />
+    </button>
+  </div>
+);

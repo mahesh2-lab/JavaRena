@@ -380,19 +380,6 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="p-1 transition-colors"
-            style={{ color: colors.textMuted }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = colors.textPrimary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = colors.textMuted;
-            }}
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Content */}

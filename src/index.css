@@ -155,6 +155,18 @@ body {
 /* ═══════════════════════════════════════════
    BASE STYLES
    ═══════════════════════════════════════════ */
+
+/* Fix select option colors for dark/light themes */
+[data-theme="dark"] select option {
+  background: #1a1b26;
+  color: #c0caf5;
+}
+
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #1e293b;
+}
+
 @layer base {
   body {
     font-family:

@@ -31,8 +31,18 @@ export default defineConfig({
     emptyOutDir: true,
     // Core Web Vitals: enable CSS code splitting for smaller initial payload
     cssCodeSplit: true,
-    // Minification for smaller bundle size (LCP improvement) — esbuild is fastest
-    minify: "esbuild",
+    // Minification for smaller bundle size (LCP improvement)
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        drop_debugger: true,
+        passes: 2,
+      },
+      format: {
+        comments: false,
+      },
+    },
     // Code splitting strategy for optimal caching
     rollupOptions: {
       output: {
