@@ -718,7 +718,7 @@ export const Editor: React.FC<EditorProps> = ({
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    }, 100);
+    }, 0);
   };
 
   return (
@@ -734,6 +734,39 @@ export const Editor: React.FC<EditorProps> = ({
         style={{
           background: "var(--bg-panel-header)",
           borderBottom: "1px solid var(--border-subtle)",
+        }}
+      >
+        {/* Active file tab */}
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md"
+          style={{
+            background: "var(--bg-surface-active)",
+            border: "1px solid var(--border-subtle)",
+          }}
+        >
+          <FileCode2
+            className="w-3.5 h-3.5"
+            style={{ color: "var(--accent-file)" }}
+          />
+          <span
+            className="text-xs font-medium"
+            style={{
+              color: "var(--text-primary)",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            Main.java
+          </span>
+          <div
+            className="w-1.5 h-1.5 rounded-full ml-0.5"
+            style={{ background: "var(--accent-lang)" }}
+            title="Unsaved changes"
+          />
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Toolbar */}
         <div className="flex items-center gap-1">
           <IconBtn
             onClick={toggleWordWrap}
@@ -754,15 +787,14 @@ export const Editor: React.FC<EditorProps> = ({
               <Copy className="w-3.5 h-3.5" />
             )}
           </IconBtn>
-          <IconBtn onClick={handleDownload} title="Download file">
+          <IconBtn onClick={handleDownload} title="Download as Main.java">
             {/* Download icon SVG */}
             <svg
-              xmlns="http://www.w3.org/2000/svg"
               className="w-3.5 h-3.5"
               fill="none"
-              viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth="2"
+              viewBox="0 0 24 24"
             >
               <path
                 strokeLinecap="round"
@@ -857,7 +889,27 @@ export const Editor: React.FC<EditorProps> = ({
                         {[2, 4, 8].map((size) => {
                           const active = tabSize === size;
                           return (
-                            /* Lines 861-882 omitted */
+                            <button
+                              key={size}
+                              onClick={() => handleTabSize(size)}
+                              className="px-3.5 py-1.5 rounded-md text-xs font-mono font-medium transition-all duration-150"
+                              style={{
+                                background: active
+                                  ? theme === "dark"
+                                    ? "#10b981"
+                                    : "#16a34a"
+                                  : theme === "dark"
+                                    ? "rgba(255,255,255,0.06)"
+                                    : "rgba(0,0,0,0.05)",
+                                color: active
+                                  ? "#fff"
+                                  : theme === "dark"
+                                    ? "#8b949e"
+                                    : "#64748b",
+                              }}
+                            >
+                              {size}
+                            </button>
                           );
                         })}
                       </div>
@@ -1071,59 +1123,6 @@ export const Editor: React.FC<EditorProps> = ({
                   {/* Whitespace */}
                   <SettingRow label="Whitespace" theme={theme}>
                     <StyledSelect
-                      value={whitespace}
-                      onChange={(e) => handleWhitespace(e.target.value)}
-                      theme={theme}
-                    >
-                      <option value="none">None</option>
-                      <option value="boundary">Boundary</option>
-                      <option value="selection">Selection</option>
-                      <option value="trailing">Trailing</option>
-                      <option value="all">All</option>
-                    </StyledSelect>
-                  </SettingRow>
-
-                  {/* Divider */}
-                  <div
-                    style={{
-                      height: 1,
-                      background:
-                        theme === "dark"
-                          ? "rgba(255,255,255,0.06)"
-                          : "rgba(0,0,0,0.07)",
-                    }}
-                  />
-
-                  {/* Toggles */}
-                  <SettingsToggle
-                    label="Minimap"
-                    checked={minimap}
-                    onChange={handleMinimap}
-                    theme={theme}
-                  />
-                  <SettingsToggle
-                    label="Line Numbers"
-                    checked={lineNumbers}
-                    onChange={handleLineNumbers}
-                    theme={theme}
-                  />
-                  <SettingsToggle
-                    label="Font Ligatures"
-                    checked={ligatures}
-                    onChange={handleLigatures}
-                    theme={theme}
-                  />
-                  <SettingsToggle
-                    label="Bracket Colors"
-                    checked={bracketColors}
-                    onChange={handleBracketColors}
-                    theme={theme}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
                       value={whitespace}
                       onChange={(e) => handleWhitespace(e.target.value)}
                       theme={theme}

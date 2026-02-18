@@ -166,7 +166,7 @@ The frontend will hot-reload. The backend will persist. Chaos under control.
 | **Split-Pane Layout** | Resizable editor and output panels. Because one screen is all you need. |
 | **10s Execution Timeout** | Infinite loops are detected and terminated. The arena has rules. |
 | **Docker Support** | One `docker-compose up` to rule them all |
-| **CheerpJ Fallback** | Client-side Java execution via WebAssembly when the server is unreachable |
+| **Client-side Java execution** | via WebAssembly when the server is unreachable |
 
 ---
 

@@ -165,9 +165,7 @@ export default function Playground() {
           <h1 className="text-lg font-bold tracking-tight text-slate-100">
             Java Playground
           </h1>
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">
-            CheerpJ
-          </span>
+          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400"></span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -252,7 +250,6 @@ export default function Playground() {
           <span>Client-side Java via WebAssembly</span>
           <span>Open JDK 8 environment</span>
         </div>
-        <div>Powered by CheerpJ</div>
       </footer>
     </div>
   );

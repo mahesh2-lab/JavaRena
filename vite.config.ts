@@ -46,18 +46,21 @@ export default defineConfig({
     // Code splitting strategy for optimal caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separate vendor chunks for better caching
-          "vendor-react": ["react", "react-dom"],
-          "vendor-monaco": ["@monaco-editor/react"],
-          "vendor-ui": ["lucide-react", "framer-motion"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react")) return "vendor-react";
+            if (id.includes("@monaco-editor")) return "vendor-monaco";
+            if (id.includes("lucide-react") || id.includes("framer-motion"))
+              return "vendor-ui";
+            return "vendor";
+          }
         },
-        // Asset file naming for long-term caching
         chunkFileNames: "assets/js/[name]-[hash].js",
         entryFileNames: "assets/js/[name]-[hash].js",
         assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
       },
     },
+    chunkSizeWarningLimit: 1000,
     // Target modern browsers for smaller output
     target: "es2020",
     // Generate source maps for debugging (won't affect users)

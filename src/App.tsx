@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect } from "react";
 import { Navbar } from "./components/NavBar";
 import { Editor } from "./components/Editor";
 import { Console, LogEntry, ErrorReview } from "./components/Console";
-import { useCheerpJ } from "./hooks/useCheerpJ";
 import { useIsMobile } from "./hooks/use-mobile";
 import { Toaster } from "./components/ui/toaster";
 import { SEOHead } from "./components/SEOHead";
@@ -64,7 +63,7 @@ export default function App() {
   const [aiReview, setAiReview] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
-  const { isReady } = useCheerpJ();
+  const isReady = true; // Placeholder since CheerpJ is removed
 
   // Handle shared session on mount
   useEffect(() => {
@@ -182,7 +181,7 @@ export default function App() {
   }, []);
 
   const handleRun = useCallback(async () => {
-    if (!isReady || isRunning) return;
+    if (isRunning) return; // Removed isReady check
 
     // Auto-switch to console on mobile when running code
     if (isMobile) {
@@ -201,12 +200,12 @@ export default function App() {
 
     console.log = (...args: unknown[]) => {
       const msg = args.join(" ");
-      if (!msg.startsWith("[CheerpJ]")) log(msg, "success");
+      log(msg, "success"); // Removed CheerpJ check
     };
 
     console.error = (...args: unknown[]) => {
       const msg = args.join(" ");
-      if (!msg.startsWith("[CheerpJ]")) log(msg, "error");
+      log(msg, "error"); // Removed CheerpJ check
     };
 
     try {
