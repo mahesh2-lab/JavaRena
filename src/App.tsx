@@ -362,17 +362,9 @@ export default function App() {
     {
       label: "Blog",
       onClick: () => {
-        window.location.href = "/blog/docker-for-java-beginners";
-      },
-    },
-    {
-      label: "Blog",
-      onClick: () => {
         window.location.href = "/blog";
       },
     },
-  import BlogPost from "./pages/BlogPost";
-  import BlogList from "./pages/BlogList";
   ];
 
   return (
