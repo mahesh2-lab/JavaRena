@@ -360,31 +360,28 @@ export default function App() {
   const navLinks = [
     { label: "Home", onClick: () => (window.location.href = "/") },
     {
-      label: "Search Blogs",
-      onClick: async () => {
-        if (!blogs.length) await fetchBlogs();
-        const q = window.prompt("Enter blog search term:");
-        if (q && q.trim()) {
-          const term = q.trim().toLowerCase();
-          const results = blogs.filter(
-            (b) =>
-              b.title.toLowerCase().includes(term) ||
-              b.content.toLowerCase().includes(term),
-          );
-          if (results.length) {
-            window.alert(results.map((b) => `• ${b.title}`).join("\n"));
-          } else {
-            window.alert("No matching blogs found.");
-          }
-        }
+      label: "Blog",
+      onClick: () => {
+        window.location.href = "/blog/docker-for-java-beginners";
       },
     },
+    {
+      label: "Blog",
+      onClick: () => {
+        window.location.href = "/blog";
+      },
+    },
+  import BlogPost from "./pages/BlogPost";
+  import BlogList from "./pages/BlogList";
   ];
 
   return (
     <Switch>
       <Route path="/blog/:slug">
         <BlogPost />
+      </Route>
+      <Route path="/blog">
+        <BlogList />
       </Route>
       <Route>
         <div
