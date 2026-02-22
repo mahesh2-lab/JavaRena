@@ -1,16 +1,13 @@
+
 # JavaRena — robots.txt
-# https://javarena.dev/robots.txt
-
-
+# https://javarena.hostmyidea.me/robots.txt
 
 User-agent: *
 Allow: /
 Disallow: /api/
 
 # Sitemap location
-Sitemap: https://javarena.dev/sitemap.xml
-
-
+Sitemap: https://javarena.hostmyidea.me/sitemap.xml
 
 # Bing
 User-agent: Bingbot

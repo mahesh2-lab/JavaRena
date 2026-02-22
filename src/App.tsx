@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, Suspense } from "react";
 import { Navbar } from "./components/NavBar";
-import React, { Suspense } from "react";
 import { Editor } from "./components/Editor";
 import { Console, LogEntry, ErrorReview } from "./components/Console";
 import { useIsMobile } from "./hooks/use-mobile";

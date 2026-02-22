@@ -5,7 +5,7 @@
   <!-- Homepage / Java Playground -->
   <url>
     <loc>https://javarena.hostmyidea.me/</loc>
-    <lastmod>2026-02-15</lastmod>
+    <lastmod>2026-02-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -15,6 +15,50 @@
     </image:image>
   </url>
 
- 
+  <!-- Playground Page -->
+  <url>
+    <loc>https://javarena.hostmyidea.me/playground</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Blog Posts -->
+  <url>
+    <loc>https://javarena.hostmyidea.me/blog/docker-for-java-beginners</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://javarena.hostmyidea.me/blog/dockerizing-spring-boot-guide</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://javarena.hostmyidea.me/blog/introduction-to-java-ecosystem</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://javarena.hostmyidea.me/blog/java-collections-framework-beginners</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://javarena.hostmyidea.me/blog/spring-boot-beginners-guide</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://javarena.hostmyidea.me/blog/understanding-java-jvm</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 
 </urlset>
