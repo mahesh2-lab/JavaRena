@@ -3,6 +3,7 @@ from nanoid import generate
 import re
 from flask_cors import CORS
 from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
 import sys
 import platform
@@ -25,6 +26,7 @@ load_dotenv()  # Load environment variables from .env file
 REQUIRED_PACKAGES = {
     "flask": "Flask",
     "flask_cors": "flask-cors",
+    "flask_socketio": "flask-socketio",
     "nanoid": "nanoid",
     "waitress": "waitress",
 }
@@ -52,25 +54,32 @@ if _missing:
 
 # Create Flask app with proper static folder configuration
 app = Flask(__name__, static_folder='dist', static_url_path='')
-CORS(app)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'javarena-secret-key-change-in-production')
+
+CORS(app, origins="*")
+
+# Initialize Socket.IO with eventlet async mode for production
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='threading',   # Use threading mode (compatible with waitress)
+    logger=False,
+    engineio_logger=False,
+    ping_timeout=30,
+    ping_interval=10,
+)
 
 
 # ── Security Headers Middleware (SEO Trust Signals) ──
 @app.after_request
 def add_security_headers(response):
-    """Add security and performance headers to all responses.
-    These improve SEO trust signals and Core Web Vitals scores."""
-    # Security headers
+    """Add security and performance headers to all responses."""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
 
-    # HTTPS enforcement (uncomment in production with real HTTPS)
-    # response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-
-    # Performance: cache static assets aggressively
     if response.content_type and ('javascript' in response.content_type or
                                   'css' in response.content_type or
                                   'image' in response.content_type or
@@ -78,7 +87,6 @@ def add_security_headers(response):
                                   'svg' in response.content_type):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     elif response.content_type and 'text/html' in response.content_type:
-        # HTML should be revalidated (for SPA updates)
         response.headers['Cache-Control'] = 'public, max-age=0, must-revalidate'
 
     return response
@@ -93,7 +101,7 @@ IS_MAC = SYSTEM == "Darwin"
 # Global Java paths
 JAVA_PATH = None
 JAVAC_PATH = None
-JAVA_AVAILABLE = False  # Cache the result
+JAVA_AVAILABLE = False
 
 # Share database paths
 DB_PATH = "shares.db"
@@ -104,6 +112,14 @@ RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = 5  # max shares per window
 rate_limit_storage = {}
 
+# ── Interactive Process Store ──
+# Maps socket session ID → running subprocess
+interactive_processes: dict[str, subprocess.Popen] = {}
+# Maps socket session ID → temp directory path (for cleanup)
+interactive_temp_dirs: dict[str, str] = {}
+# Lock for thread-safe process management
+process_lock = threading.Lock()
+
 print(f"Java Compiler Server - Detected OS: {SYSTEM}")
 
 
@@ -112,7 +128,6 @@ def find_java():
     global JAVA_PATH, JAVAC_PATH
 
     if IS_WINDOWS:
-        # First try shutil.which (standard PATH)
         javac = shutil.which("javac")
         java = shutil.which("java")
 
@@ -121,7 +136,6 @@ def find_java():
             JAVAC_PATH = javac
             return True
 
-        # Search Program Files for JDK installations
         search_dirs = [
             "C:\\Program Files\\Java",
             "C:\\Program Files (x86)\\Java",
@@ -146,7 +160,7 @@ def find_java():
                 continue
 
         return False
-    else:  # Linux/Mac
+    else:
         javac = shutil.which("javac")
         java = shutil.which("java")
 
@@ -155,7 +169,6 @@ def find_java():
             JAVAC_PATH = javac
             return True
 
-        # Try common Linux/Mac paths
         for bin_path in ["/usr/bin", "/usr/local/bin", "/opt/java/bin"]:
             javac_path = os.path.join(bin_path, "javac")
             java_path = os.path.join(bin_path, "java")
@@ -211,7 +224,6 @@ def check_rate_limit():
     if client_ip not in rate_limit_storage:
         rate_limit_storage[client_ip] = []
 
-    # Remove old timestamps
     rate_limit_storage[client_ip] = [
         ts for ts in rate_limit_storage[client_ip]
         if current_time - ts < RATE_LIMIT_WINDOW
@@ -225,9 +237,7 @@ def check_rate_limit():
 
 
 def sanitize_code(code):
-    """Validate code input (XSS protection handled by json.dumps in response)"""
-    # No HTML escaping needed - json.dumps() handles proper escaping
-    # when injecting into JavaScript context
+    """Validate code input"""
     return code
 
 
@@ -235,38 +245,60 @@ def cleanup_expired_shares():
     """Background task to cleanup expired shares and images"""
     while True:
         try:
-            time.sleep(3600)  # Run every hour
+            time.sleep(3600)
 
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
 
-            # Get expired shares with images
             cursor.execute("""
                 SELECT id, image_path FROM shares 
                 WHERE expires_at < datetime('now')
             """)
             expired = cursor.fetchall()
 
-            # Delete expired shares
             cursor.execute(
                 "DELETE FROM shares WHERE expires_at < datetime('now')")
             conn.commit()
 
-            # Delete associated images
             for share_id, image_path in expired:
                 if image_path and os.path.exists(image_path):
                     try:
                         os.remove(image_path)
                         print(f"[CLEANUP] Deleted image: {image_path}")
                     except Exception as e:
-                        print(
-                            f"[CLEANUP] Failed to delete image {image_path}: {e}")
+                        print(f"[CLEANUP] Failed to delete image {image_path}: {e}")
 
             print(f"[CLEANUP] Cleaned up {len(expired)} expired shares")
             conn.close()
 
         except Exception as e:
             print(f"[CLEANUP] Error during cleanup: {e}")
+
+
+def _kill_process(sid: str):
+    """Kill an interactive process and clean up its resources."""
+    with process_lock:
+        proc = interactive_processes.pop(sid, None)
+        temp_dir = interactive_temp_dirs.pop(sid, None)
+
+    if proc:
+        try:
+            proc.stdin.close()
+        except Exception:
+            pass
+        try:
+            proc.kill()
+            proc.wait(timeout=5)
+        except Exception:
+            pass
+        print(f"[TERMINAL] Killed process for sid={sid}")
+
+    if temp_dir and os.path.exists(temp_dir):
+        try:
+            shutil.rmtree(temp_dir)
+            print(f"[TERMINAL] Cleaned temp dir for sid={sid}")
+        except Exception as e:
+            print(f"[TERMINAL] Failed to clean temp dir {temp_dir}: {e}")
 
 
 def compile_java(source_code, stdin_input=""):
@@ -276,16 +308,13 @@ def compile_java(source_code, stdin_input=""):
         return {"success": False, "error": "Java compiler (javac) not found on this system"}
 
     try:
-        # Create temporary directory
         temp_dir = tempfile.mkdtemp()
         source_file = Path(temp_dir) / "Main.java"
         print(f"[LOG] Created temp dir: {temp_dir}")
 
-        # Write source code to file
         source_file.write_text(source_code, encoding='utf-8')
         print(f"[LOG] Source code written ({len(source_code)} chars)")
 
-        # Compile using detected Java path
         compile_cmd = [JAVAC_PATH, str(source_file)]
         print(f"[LOG] Compiling: {' '.join(compile_cmd)}")
         result = subprocess.run(
@@ -305,15 +334,9 @@ def compile_java(source_code, stdin_input=""):
 
         print("[LOG] Compilation successful")
 
-        # Run the compiled class using detected Java path
         run_cmd = [JAVA_PATH, "-cp", temp_dir, "Main"]
         has_stdin = bool(stdin_input)
         print(f"[LOG] Running: {' '.join(run_cmd)}")
-        if has_stdin:
-            print(
-                f"[LOG] Stdin input provided ({len(stdin_input)} chars): {repr(stdin_input[:100])}")
-        else:
-            print("[LOG] No stdin input provided")
 
         result = subprocess.run(
             run_cmd,
@@ -329,12 +352,7 @@ def compile_java(source_code, stdin_input=""):
         error = result.stderr
 
         print(f"[LOG] Execution finished (exit code: {result.returncode})")
-        if output:
-            print(f"[LOG] Stdout: {repr(output[:200])}")
-        if error:
-            print(f"[LOG] Stderr: {repr(error[:200])}")
 
-        # Cleanup
         shutil.rmtree(temp_dir)
         print("[LOG] Temp dir cleaned up")
 
@@ -346,40 +364,200 @@ def compile_java(source_code, stdin_input=""):
         }
 
     except subprocess.TimeoutExpired:
-        # Cleanup temp dir on timeout
         try:
             shutil.rmtree(temp_dir)
-        except:
+        except Exception:
             pass
 
-        # Check if the code needs stdin input but none was provided
         needs_input = any(keyword in source_code for keyword in [
             "Scanner", "System.in", "BufferedReader", "InputStreamReader",
             "nextInt", "nextLine", "nextDouble", "nextFloat", "readLine"
         ])
 
         if needs_input and not stdin_input:
-            print("[ERROR] Timeout - code requires stdin input but none was provided")
             return {
                 "success": False,
                 "error": "This program requires user input (Scanner/System.in detected). Please provide input in the 'Stdin Input' panel below the console before running.",
                 "needs_input": True
             }
         else:
-            print("[ERROR] Execution timed out (10s limit)")
             return {"success": False, "error": "Execution timeout (10s limit)"}
     except Exception as e:
         print(f"[ERROR] Exception: {str(e)}")
         return {"success": False, "error": str(e)}
 
-# API Routes
 
+# ════════════════════════════════════════════════════════════
+#  Socket.IO — Interactive Terminal Events
+# ════════════════════════════════════════════════════════════
+
+@socketio.on('connect')
+def handle_connect():
+    """Client connected — send them their session ID."""
+    sid = request.sid
+    print(f"[SOCKET] Client connected: {sid}")
+    emit('connected', {'sid': sid})
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Client disconnected — kill any running process."""
+    sid = request.sid
+    print(f"[SOCKET] Client disconnected: {sid}")
+    _kill_process(sid)
+
+
+@socketio.on('terminal:run')
+def handle_terminal_run(data):
+    """
+    Compile and run Java code in interactive mode.
+    Streams output back line-by-line via 'terminal:output' events.
+    Expected payload: { code: string }
+    """
+    sid = request.sid
+
+    # Kill any existing process for this client
+    _kill_process(sid)
+
+    code = data.get('code', '').strip()
+    if not code:
+        emit('terminal:error', {'message': 'No code provided'})
+        return
+
+    if not find_java():
+        emit('terminal:error', {'message': 'Java compiler not found on server'})
+        return
+
+    try:
+        # Create temp directory
+        temp_dir = tempfile.mkdtemp()
+        source_file = Path(temp_dir) / "Main.java"
+        source_file.write_text(code, encoding='utf-8')
+
+        # Compile
+        emit('terminal:output', {'data': '\r\n\x1b[36m⚙  Compiling...\x1b[0m\r\n'})
+
+        compile_result = subprocess.run(
+            [JAVAC_PATH, str(source_file)],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            cwd=temp_dir
+        )
+
+        if compile_result.returncode != 0:
+            error_msg = compile_result.stderr or "Compilation failed"
+            # Emit compilation error to xterm with ANSI red
+            emit('terminal:output', {
+                'data': f'\r\n\x1b[31m✗ Compilation Error:\x1b[0m\r\n{_ansi_escape(error_msg)}\r\n'
+            })
+            emit('terminal:exit', {'code': 1, 'reason': 'compilation_error'})
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return
+
+        emit('terminal:output', {'data': '\x1b[32m✓ Compiled successfully\x1b[0m\r\n\r\n'})
+
+        # Start interactive process
+        proc = subprocess.Popen(
+            [JAVA_PATH, "-cp", temp_dir, "Main"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding='utf-8',
+            bufsize=0,          # Unbuffered
+            cwd=temp_dir,
+        )
+
+        with process_lock:
+            interactive_processes[sid] = proc
+            interactive_temp_dirs[sid] = temp_dir
+
+        print(f"[TERMINAL] Started process PID={proc.pid} for sid={sid}")
+
+        # Stream output in background thread
+        def _stream_output():
+            try:
+                # Read char-by-char so prompts (without newlines) are streamed immediately
+                while True:
+                    chunk = proc.stdout.read(1)
+                    if not chunk:
+                        break
+                    # Convert \n → \r\n for xterm compatibility
+                    chunk = chunk.replace('\n', '\r\n')
+                    socketio.emit('terminal:output', {'data': chunk}, to=sid)
+
+                exit_code = proc.wait()
+                print(f"[TERMINAL] Process PID={proc.pid} exited with code {exit_code}")
+                socketio.emit('terminal:exit', {'code': exit_code, 'reason': 'natural'}, to=sid)
+            except Exception as e:
+                print(f"[TERMINAL] Stream error for sid={sid}: {e}")
+                socketio.emit('terminal:exit', {'code': -1, 'reason': str(e)}, to=sid)
+            finally:
+                _kill_process(sid)
+
+        thread = threading.Thread(target=_stream_output, daemon=True)
+        thread.start()
+
+    except Exception as e:
+        print(f"[TERMINAL] Exception for sid={sid}: {e}")
+        emit('terminal:error', {'message': str(e)})
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+
+@socketio.on('terminal:input')
+def handle_terminal_input(data):
+    """
+    Forward keyboard input from xterm to the running Java process stdin.
+    Expected payload: { data: string }
+    """
+    sid = request.sid
+    with process_lock:
+        proc = interactive_processes.get(sid)
+
+    if proc and proc.poll() is None:
+        try:
+            input_data = data.get('data', '')
+            proc.stdin.write(input_data)
+            proc.stdin.flush()
+        except BrokenPipeError:
+            print(f"[TERMINAL] Broken pipe for sid={sid} (process ended)")
+        except Exception as e:
+            print(f"[TERMINAL] Input error for sid={sid}: {e}")
+
+
+@socketio.on('terminal:kill')
+def handle_terminal_kill():
+    """Kill the running process for this session."""
+    sid = request.sid
+    print(f"[TERMINAL] Kill requested for sid={sid}")
+    _kill_process(sid)
+    emit('terminal:exit', {'code': -1, 'reason': 'killed'})
+
+
+@socketio.on('terminal:resize')
+def handle_terminal_resize(data):
+    """Handle terminal resize events (for future PTY support)."""
+    # Currently no-op; kept for API completeness
+    pass
+
+
+def _ansi_escape(text: str) -> str:
+    """Convert plain text to xterm-safe string (escape < and > but keep newlines as \r\n)."""
+    return text.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\r\n')
+
+
+# ════════════════════════════════════════════════════════════
+#  REST API Routes
+# ════════════════════════════════════════════════════════════
 
 @app.route("/api/share", methods=["POST"])
 def create_share():
     """Create a shareable session"""
     try:
-        # Check rate limit
         if not check_rate_limit():
             return jsonify({
                 "success": False,
@@ -390,30 +568,24 @@ def create_share():
         code = data.get("code", "")
         output = data.get("output", "")
 
-        # Validate input
         if not code or not code.strip():
             return jsonify({
                 "success": False,
                 "error": "Code cannot be empty"
             }), 400
 
-        if len(code) > 50000:  # 50KB limit
+        if len(code) > 50000:
             return jsonify({
                 "success": False,
                 "error": "Code too large (max 50KB)"
             }), 400
 
-        # Sanitize inputs
         code = sanitize_code(code)
         output = sanitize_code(output) if output else ""
 
-        # Generate unique ID
         share_id = generate_share_id()
-
-        # Calculate expiration (30 days)
         expires_at = datetime.now() + timedelta(days=30)
 
-        # Store in database
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
@@ -448,7 +620,6 @@ def get_share(share_id):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Get share and increment view count
         cursor.execute("""
             SELECT code, output, views, created_at, expires_at
             FROM shares WHERE id = ?
@@ -465,7 +636,6 @@ def get_share(share_id):
 
         code, output, views, created_at, expires_at = result
 
-        # Check if expired
         if datetime.fromisoformat(expires_at) < datetime.now():
             conn.close()
             return jsonify({
@@ -473,7 +643,6 @@ def get_share(share_id):
                 "error": "Share has expired"
             }), 410
 
-        # Increment view count
         cursor.execute("""
             UPDATE shares SET views = views + 1
             WHERE id = ?
@@ -481,8 +650,6 @@ def get_share(share_id):
 
         conn.commit()
         conn.close()
-
-        print(f"[SHARE] Retrieved share: {share_id} (views: {views + 1})")
 
         return jsonify({
             "success": True,
@@ -499,81 +666,6 @@ def get_share(share_id):
             "success": False,
             "error": str(e)
         }), 500
-
-
-# @app.route("/api/share/image", methods=["POST"])
-# def generate_share_image():
-#     """Generate a code image"""
-#     try:
-#         # Check rate limit
-#         if not check_rate_limit():
-#             return jsonify({
-#                 "success": False,
-#                 "error": "Rate limit exceeded. Please try again later."
-#             }), 429
-
-#         data = request.get_json()
-#         code = data.get("code", "")
-#         output = data.get("output", "")
-
-#         if not code or not code.strip():
-#             return jsonify({
-#                 "success": False,
-#                 "error": "Code cannot be empty"
-#             }), 400
-
-#         if len(code) > 50000:
-#             return jsonify({
-#                 "success": False,
-#                 "error": "Code too large (max 50KB)"
-#             }), 400
-
-#         # Generate image
-#         img = generate_image(code, output)
-
-#         if not img:
-#             return jsonify({
-#                 "success": False,
-#                 "error": "Failed to generate image"
-#             }), 500
-
-#         # Generate unique filename
-#         image_id = generate_share_id()
-#         image_filename = f"{image_id}.png"
-#         image_path = os.path.join(SHARE_IMAGES_DIR, image_filename)
-
-#         # Save image
-#         img.save(image_path, "PNG", optimize=True, quality=85)
-
-#         # Calculate expiration (30 days)
-#         expires_at = datetime.now() + timedelta(days=30)
-
-#         # Store in database (for cleanup)
-#         conn = sqlite3.connect(DB_PATH)
-#         cursor = conn.cursor()
-
-#         cursor.execute("""
-#             INSERT INTO shares (id, code, output, image_path, expires_at)
-#             VALUES (?, ?, ?, ?, ?)
-#         """, (image_id, code[:1000], output[:500], image_path, expires_at.isoformat()))
-
-#         conn.commit()
-#         conn.close()
-
-#         print(f"[SHARE] Generated image: {image_filename}")
-
-#         return jsonify({
-#             "success": True,
-#             "image_url": f"/share-images/{image_filename}",
-#             "expires_at": expires_at.isoformat()
-#         })
-
-#     except Exception as e:
-#         print(f"[SHARE] Error generating image: {e}")
-#         return jsonify({
-#             "success": False,
-#             "error": str(e)
-#         }), 500
 
 
 @app.route("/share-images/<filename>")
@@ -595,12 +687,13 @@ def health():
         "java_available": JAVA_AVAILABLE,
         "is_windows": IS_WINDOWS,
         "is_linux": IS_LINUX,
+        "interactive_sessions": len(interactive_processes),
     })
 
 
 @app.route("/api/compile", methods=["POST"])
 def compile_endpoint():
-    """Compile and run Java source code"""
+    """Compile and run Java source code (non-interactive mode)"""
     try:
         data = request.get_json()
         source_code = data.get("code", "")
@@ -609,32 +702,20 @@ def compile_endpoint():
         print(f"\n{'='*50}")
         print(f"[API] /api/compile received")
         print(f"[API] Code length: {len(source_code)} chars")
-        print(
-            f"[API] Stdin received: {repr(stdin_input) if stdin_input else '(empty)'}")
-        print(f"[API] Request keys: {list(data.keys())}")
+        print(f"[API] Stdin received: {repr(stdin_input) if stdin_input else '(empty)'}")
         print(f"{'='*50}")
 
         if not source_code:
-            print("[API] ERROR: No code provided")
             return jsonify({"success": False, "error": "No code provided"}), 400
 
         result = compile_java(source_code, stdin_input)
 
-        print(f"[API] Response: success={result.get('success')}")
-        if result.get('output'):
-            print(f"[API] Output: {repr(result['output'][:200])}")
-        if result.get('error'):
-            print(f"[API] Error: {repr(result['error'][:200])}")
-        print(f"{'='*50}\n")
-
-        # If there's an error, attach a detailed explanation
         error_text = result.get('error', '')
         if error_text and error_text.strip():
             is_compilation = not result.get('success') and (
                 'Compilation failed' in error_text or 'error:' in error_text
             )
 
-            # Try AI review first (richer, needs API key)
             ai_explanation = ai_review_error(
                 error_text=error_text,
                 source_code=source_code,
@@ -642,9 +723,7 @@ def compile_endpoint():
             )
             if ai_explanation:
                 result['ai_review'] = ai_explanation
-                print(f"[REVIEW] AI review attached")
             else:
-                # Fallback to pattern-matching review when AI is unavailable
                 review = explain_error(
                     error_text=error_text,
                     source_code=source_code,
@@ -652,8 +731,6 @@ def compile_endpoint():
                 )
                 if review:
                     result['error_review'] = review
-                    print(
-                        f"[REVIEW] Pattern-match fallback: {review['title']}")
 
         return jsonify(result)
 
@@ -675,13 +752,14 @@ def info():
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}"
     })
 
-# Serve React static files
 
+# ════════════════════════════════════════════════════════════
+#  Static / SPA Routing
+# ════════════════════════════════════════════════════════════
 
 @app.route("/s/<share_id>")
 def serve_shared(share_id):
-    """Serve shared session with comprehensive Open Graph + SEO metadata.
-    This is critical for social sharing previews and crawler indexing."""
+    """Serve shared session with OG metadata."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -695,73 +773,42 @@ def serve_shared(share_id):
         conn.close()
 
         if not result:
-            # Share not found, serve regular app
             return serve("")
 
         code, output, views, created_at, expires_at, image_path = result
 
-        # Check if expired
         if datetime.fromisoformat(expires_at) < datetime.now():
             return serve("")
 
-        # Get first 150 chars of code for description (SEO optimized length)
         code_preview = code[:150].replace('\n', ' ').replace(
             '"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
 
-        # Generate OG image URL
         og_image = f"{request.host_url}share-images/{os.path.basename(image_path)}" if image_path else f"{request.host_url}og-image.png"
         share_url = f"{request.host_url}s/{share_id}"
 
-        # Read index.html and inject OG tags
-        index_path = os.path.join(
-            app.static_folder, "index.html")  # type: ignore
+        index_path = os.path.join(app.static_folder, "index.html")  # type: ignore
 
         if os.path.exists(index_path):
             with open(index_path, 'r', encoding='utf-8') as f:
                 html_content = f.read()
 
-            # Replace default meta tags with share-specific ones
             html_content = html_content.replace(
-                '<title>JavaRena — Online Java Compiler & Code Playground</title>',
+                '<title>JavaRena — Online Java Compiler &amp; Code Playground</title>',
                 f'<title>Shared Java Code — JavaRena Playground</title>'
             )
 
-            # Inject share-specific OG meta tags + JSON-LD for shared snippet
             og_tags = f"""
     <!-- Share-specific SEO overrides -->
     <meta property="og:title" content="Shared Java Code — JavaRena Playground" />
     <meta property="og:description" content="{code_preview}..." />
     <meta property="og:image" content="{og_image}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
     <meta property="og:url" content="{share_url}" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Shared Java Code — JavaRena" />
-    <meta name="twitter:description" content="{code_preview}..." />
     <meta name="twitter:image" content="{og_image}" />
     <link rel="canonical" href="{share_url}" />
     <meta name="robots" content="noindex, follow" />
-    <script type="application/ld+json">
-    {{
-      "@context": "https://schema.org",
-      "@type": "CreativeWork",
-      "name": "Shared Java Code Snippet",
-      "description": "{code_preview}...",
-      "url": "{share_url}",
-      "dateCreated": "{created_at}",
-      "interactionStatistic": {{
-        "@type": "InteractionCounter",
-        "interactionType": "https://schema.org/ViewAction",
-        "userInteractionCount": {views}
-      }},
-      "isPartOf": {{
-        "@type": "WebApplication",
-        "name": "JavaRena",
-        "url": "{request.host_url}"
-      }}
-    }}
-    </script>
     <script>
         window.__SHARED_SESSION__ = {{
             id: "{share_id}",
@@ -772,10 +819,7 @@ def serve_shared(share_id):
         }};
     </script>
 """
-
-            # Insert before </head>
             html_content = html_content.replace('</head>', og_tags + '</head>')
-
             return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
         else:
             return jsonify({
@@ -792,21 +836,15 @@ def serve_shared(share_id):
 @app.route("/<path:path>")
 def serve(path):
     """Serve React static files or index.html for SPA routing"""
-    # Skip share routes
     if path.startswith("s/"):
         return serve_shared(path[2:])
 
-    # type: ignore
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        # pyright: ignore[reportArgumentType]
-        return send_from_directory(app.static_folder, path)
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):  # type: ignore
+        return send_from_directory(app.static_folder, path)  # type: ignore
     else:
-        # Return index.html for SPA routing
-        index_path = os.path.join(
-            app.static_folder, "index.html")  # type: ignore
+        index_path = os.path.join(app.static_folder, "index.html")  # type: ignore
         if os.path.exists(index_path):
-            # type: ignore
-            return send_from_directory(app.static_folder, "index.html")
+            return send_from_directory(app.static_folder, "index.html")  # type: ignore
         else:
             return jsonify({
                 "error": "Frontend not built yet",
@@ -814,9 +852,11 @@ def serve(path):
             }), 404
 
 
+# ════════════════════════════════════════════════════════════
+#  Boot Sequence Helpers
+# ════════════════════════════════════════════════════════════
+
 def _boot_step(label, value, delay=0.15):
-    """Print a single boot step with animation."""
-    # ANSI colors
     GREEN = "\033[92m"
     CYAN = "\033[96m"
     DIM = "\033[2m"
@@ -827,13 +867,11 @@ def _boot_step(label, value, delay=0.15):
     sys.stdout.write(f"  {DIM}[    ]{RESET} {padded_label}")
     sys.stdout.flush()
     time.sleep(delay)
-    sys.stdout.write(
-        f"\r  {GREEN}[ ✓  ]{RESET} {padded_label} {CYAN}{BOLD}{value}{RESET}\n")
+    sys.stdout.write(f"\r  {GREEN}[ ✓  ]{RESET} {padded_label} {CYAN}{BOLD}{value}{RESET}\n")
     sys.stdout.flush()
 
 
 def _boot_step_fail(label, value, delay=0.15):
-    """Print a failing boot step."""
     RED = "\033[91m"
     DIM = "\033[2m"
     RESET = "\033[0m"
@@ -843,28 +881,23 @@ def _boot_step_fail(label, value, delay=0.15):
     sys.stdout.write(f"  {DIM}[    ]{RESET} {padded_label}")
     sys.stdout.flush()
     time.sleep(delay)
-    sys.stdout.write(
-        f"\r  {RED}[ ✗  ]{RESET} {padded_label} {RED}{BOLD}{value}{RESET}\n")
+    sys.stdout.write(f"\r  {RED}[ ✗  ]{RESET} {padded_label} {RED}{BOLD}{value}{RESET}\n")
     sys.stdout.flush()
 
 
 def _get_java_version():
-    """Try to get JVM version string."""
     try:
         result = subprocess.run(
             [JAVA_PATH, "-version"],
             capture_output=True, text=True, timeout=5
         )
-        # java -version prints to stderr
-        ver = result.stderr.strip().split(
-            "\n")[0] if result.stderr else "Unknown"
+        ver = result.stderr.strip().split("\n")[0] if result.stderr else "Unknown"
         return ver
     except Exception:
         return "Not found"
 
 
 def _get_react_version():
-    """Read React version from package.json."""
     try:
         pkg_path = os.path.join(os.path.dirname(__file__), "package.json")
         with open(pkg_path, "r") as f:
@@ -875,7 +908,6 @@ def _get_react_version():
 
 
 def _get_vite_version():
-    """Read Vite version from package.json."""
     try:
         pkg_path = os.path.join(os.path.dirname(__file__), "package.json")
         with open(pkg_path, "r") as f:
@@ -885,8 +917,11 @@ def _get_vite_version():
         return "Unknown"
 
 
+# ════════════════════════════════════════════════════════════
+#  Entry Point
+# ════════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
-    # ── ANSI color codes ──
     CYAN = "\033[96m"
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
@@ -895,7 +930,6 @@ if __name__ == "__main__":
     RESET = "\033[0m"
     MAGENTA = "\033[95m"
 
-    # ── ASCII art banner ──
     print()
     print(f"{CYAN}╔══════════════════════════════════════════════════════════════════════╗{RESET}")
     print(f"{CYAN}║                                                                      ║{RESET}")
@@ -909,21 +943,16 @@ if __name__ == "__main__":
     print(f"{CYAN}╚══════════════════════════════════════════════════════════════════════╝{RESET}")
     print()
 
-    # ── Boot header ──
-    print(
-        f"  {YELLOW}{BOLD}[BOOT]{RESET} {DIM}JavaRena v1.0 — Summoning Protocol Initiated{RESET}")
+    print(f"  {YELLOW}{BOLD}[BOOT]{RESET} {DIM}JavaRena v2.0 — Interactive Terminal Protocol{RESET}")
     print()
 
-    # ── Pre-flight: check dist folder ──
     if not os.path.exists("dist"):
         _boot_step_fail("Locating built frontend", "dist/ not found")
         print(f"\n  {YELLOW}Frontend not built yet!{RESET}")
         print(f"  Run this first: {BOLD}npm run build{RESET}")
-        print(
-            f"  Then start the server again with: {BOLD}python server.py{RESET}\n")
+        print(f"  Then start the server again with: {BOLD}python server.py{RESET}\n")
         sys.exit(1)
 
-    # ── Step 1: Detect OS ──
     os_label = f"{SYSTEM}"
     if IS_WINDOWS:
         os_label = f"Windows ({platform.release()})"
@@ -933,59 +962,50 @@ if __name__ == "__main__":
         os_label = "macOS"
     _boot_step("Detecting host OS", os_label)
 
-    # ── Step 2: Find javac ──
     JAVA_AVAILABLE = find_java()
     if JAVA_AVAILABLE:
         _boot_step("Locating javac binary", JAVAC_PATH)
     else:
         _boot_step_fail("Locating javac binary", "NOT FOUND")
 
-    # ── Step 3: JVM version ──
     if JAVA_AVAILABLE:
         jvm_ver = _get_java_version()
         _boot_step("Verifying JVM heartbeat", jvm_ver)
     else:
         _boot_step_fail("Verifying JVM heartbeat", "Skipped (no Java)")
 
-    # ── Step 4: Flask server ──
-    _boot_step("Raising Flask server from the void", "Port 5000")
+    _boot_step("Raising Flask + Socket.IO server", "Port 5000")
 
-    # ── Step 5: Monaco + React ──
     react_ver = _get_react_version()
     _boot_step("Mounting Monaco Editor grimoire", f"React {react_ver}")
 
-    # ── Step 6: Vite proxy ──
     vite_ver = _get_vite_version()
     _boot_step("Binding frontend to backend", f"Vite {vite_ver} proxy locked")
 
-    # ── Step 7: Classloader warmth ──
     _boot_step("Warming the classloader", "Ready")
+    _boot_step("Initializing interactive terminal engine", "xterm.js + WebSocket")
 
-    # ── Step 8: Initialize share database ──
     init_share_db()
     _boot_step("Initializing share database", "SQLite ready")
 
-    # ── Step 9: Start cleanup thread ──
-    cleanup_thread = threading.Thread(
-        target=cleanup_expired_shares, daemon=True)
+    cleanup_thread = threading.Thread(target=cleanup_expired_shares, daemon=True)
     cleanup_thread.start()
     _boot_step("Starting cleanup daemon", "Background task active")
 
-    # ── Final status ──
     print()
     print(f"  {GREEN}{BOLD}[SYSTEM]{RESET} {BOLD}The Arena is open.{RESET}")
-    print(
-        f"  {DIM}[SYSTEM] May your semicolons be plentiful, and your NullPointers few.{RESET}")
+    print(f"  {DIM}[SYSTEM] Interactive terminal mode: ENABLED{RESET}")
+    print(f"  {DIM}[SYSTEM] May your semicolons be plentiful, and your NullPointers few.{RESET}")
     print()
 
     if not JAVA_AVAILABLE:
-        print(
-            f"  {YELLOW}{BOLD}⚠  WARNING:{RESET}{YELLOW} Java compiler (javac) not found!{RESET}")
+        print(f"  {YELLOW}{BOLD}⚠  WARNING:{RESET}{YELLOW} Java compiler (javac) not found!{RESET}")
         print(f"  {YELLOW}   Please install Java Development Kit (JDK){RESET}")
         print()
 
     print(f"  {MAGENTA}{BOLD}>>> Listening on http://localhost:5000{RESET}")
+    print(f"  {MAGENTA}{BOLD}>>> Socket.IO ready for interactive sessions{RESET}")
     print()
 
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=5000)
+    # Use socketio.run for development; in production use gunicorn+eventlet
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False, use_reloader=False)

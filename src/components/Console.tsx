@@ -39,6 +39,8 @@ interface ConsoleProps {
   onStdinChange: (value: string) => void;
   errorReview?: ErrorReview | null;
   aiReview?: string | null;
+  /** When true, suppress the Console's own header bar (parent provides one) */
+  hideHeader?: boolean;
 }
 
 export const Console: React.FC<ConsoleProps> = ({
@@ -50,6 +52,7 @@ export const Console: React.FC<ConsoleProps> = ({
   onStdinChange,
   errorReview,
   aiReview,
+  hideHeader = false,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showStdin, setShowStdin] = useState<boolean>(false);
@@ -71,7 +74,7 @@ export const Console: React.FC<ConsoleProps> = ({
       style={{ background: "var(--bg-console)" }}
     >
       {/* Console Header */}
-      <div
+      {!hideHeader && <div
         className="px-4 py-2.5 flex items-center justify-between shrink-0 responsive-status-bar"
         style={{
           background: "var(--bg-panel-header)",
@@ -130,7 +133,7 @@ export const Console: React.FC<ConsoleProps> = ({
         >
           <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
-      </div>
+      </div>}
 
       {/* Stdin Input Area */}
       <div

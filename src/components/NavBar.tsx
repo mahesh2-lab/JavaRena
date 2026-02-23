@@ -23,7 +23,6 @@ interface NavbarProps {
   onToggleConsole: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
-  navLinks?: { label: string; onClick: () => void }[];
 }
 
 const THEMES: { key: Theme; label: string; swatch: string }[] = [
@@ -41,7 +40,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleConsole,
   isFullscreen,
   onToggleFullscreen,
-  navLinks = [],
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const isMobile = useIsMobile();
@@ -73,37 +71,21 @@ export const Navbar: React.FC<NavbarProps> = ({
         </a>
       </div>
 
-      {/* Center: Run Button and Nav Links */}
+      {/* Center: Run Button */}
       <nav
-        className="flex items-center gap-4"
+        className="flex items-center gap-2"
         aria-label="Code execution controls"
       >
-        {/* Navigation Links */}
-        {navLinks.length > 0 && (
-          <div className="flex gap-2">
-            {navLinks.map((link, idx) => (
-              <button
-                key={link.label + idx}
-                onClick={link.onClick}
-                className="px-3 py-1.5 rounded text-sm font-medium bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                style={{ color: "var(--logo-accent-from)" }}
-              >
-                {link.label}
-              </button>
-            ))}
-          </div>
-        )}
         {/* Run Button */}
         <button
           id="run-button"
           onClick={onRun}
           disabled={!isReady || isRunning}
           title={isRunning ? "Running..." : "Run Code"}
-          className={`flex items-center justify-center font-semibold transition-all duration-150 shadow-sm ${
-            isMobile
+          className={`flex items-center justify-center font-semibold transition-all duration-150 shadow-sm ${isMobile
               ? "gap-1.5 rounded-md text-xs px-3 py-1.5"
               : "gap-2.5 rounded-md text-sm px-5 py-2"
-          }`}
+            }`}
           style={{
             ...(isMobile ? {} : {}),
             background:
@@ -158,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         className="flex items-center gap-2 sm:gap-4 justify-end"
         aria-label="Settings and tools"
       >
-        {/* Status Indicator - Desktop only */}
+        {/* Status Indicator - Desktop only - Commented out as requested
         {!isMobile && (
           <div
             className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full"
@@ -187,6 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
         )}
+        */}
 
         {/* Give a Star Button */}
         <a

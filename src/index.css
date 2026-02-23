@@ -1,8 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap");
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════
    ACCESSIBILITY — Screen-reader only utility
@@ -20,14 +18,23 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   CLS PREVENTION — Reserve space for dynamic content
+   FULL-HEIGHT LAYOUT — Chain from html → body → #root → App
    ═══════════════════════════════════════════════════════ */
+html,
+body {
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 #root {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  contain: layout style;
+  overflow: hidden;
 }
 
 /* Prevent font-swap layout shifts */
@@ -272,6 +279,34 @@ body {
   animation: fadeIn 0.25s ease-out forwards;
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+
+/* ═══════════════════════════════════════════
+   XTERM.JS OVERRIDES
+   ═══════════════════════════════════════════ */
+/* xterm must fill its wrapper entirely */
+.xterm {
+  padding: 0 !important;
+  height: 100% !important;
+}
+.xterm-screen {
+  height: 100% !important;
+}
+/* Thin themed scrollbar for the viewport */
+.xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 100px;
+}
+.xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
 /* ═══════════════════════════════════════════
    LOGO GRADIENT
    ═══════════════════════════════════════════ */
@@ -290,8 +325,8 @@ body {
    RESPONSIVE DESIGN
    ═══════════════════════════════════════════ */
 
-/* Mobile devices (portrait phones) */
-@media (max-width: 640px) {
+/* Mobile devices (portrait phones ≤ 767px) */
+@media (max-width: 767px) {
   .responsive-main {
     flex-direction: column !important;
   }
@@ -331,13 +366,15 @@ body {
     padding-right: 0.75rem !important;
   }
 
-  /* Better touch targets on mobile (exclude toast close) */
-  button:not(.toast-close-btn) {
-    min-height: 44px !important;
+  /* Better touch targets on mobile — only real action buttons, not tiny header controls */
+  button:not(.toast-close-btn):not(.hdr-btn) {
+    min-height: 44px;
   }
 
-  .toast-close-btn {
+  .toast-close-btn,
+  .hdr-btn {
     min-height: unset !important;
+    height: auto !important;
   }
 
   /* Mobile-specific Monaco editor adjustments */
@@ -363,21 +400,25 @@ body {
   }
 }
 
-/* Tablet devices */
-@media (min-width: 641px) and (max-width: 1024px) {
+/* Tablet devices — stacked layout (768px–1199px) */
+@media (min-width: 768px) and (max-width: 1199px) {
   .responsive-main {
     flex-direction: column !important;
   }
 
   .responsive-editor {
-    flex: 1 1 55% !important;
-    min-height: 55vh !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
   }
 
   .responsive-console {
-    flex: 1 1 45% !important;
-    min-height: 45vh !important;
+    flex: 0 0 40% !important;
+    min-height: 0 !important;
+    width: 100% !important;
     border-top: 1px solid var(--border-subtle) !important;
+    overflow: hidden !important;
   }
 
   .responsive-divider {
