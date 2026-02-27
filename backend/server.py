@@ -1,26 +1,33 @@
+# Serve robots.txt from public directory
 import platform
-from flask import send_from_directory
-from api.sockets import register_socket_events
-from api.routes import register_routes
-from services.share_service import cleanup_expired_shares
-import services.java_compiler as jc
-from utils.helpers import _boot_step, _boot_step_fail, get_java_version
-from core.database import init_share_db
-from core.config import SECRET_KEY, REQUIRED_PACKAGES, SYSTEM, IS_WINDOWS, IS_LINUX, IS_MAC
-from datetime import datetime
-import glob
-from flask import send_from_directory, request, Response, jsonify
-from flask_socketio import SocketIO
-from flask_cors import CORS
-from flask import Flask, Response, send_from_directory, request
-import time
-import threading
-import os
-import sys
 import flask
+import sys
+import os
+import threading
+import time
+from flask import Flask, Response, send_from_directory, request
+from flask_cors import CORS
+from flask_socketio import SocketIO
+from flask import send_from_directory, request, Response, jsonify
+import glob
+from datetime import datetime
+from core.config import SECRET_KEY, REQUIRED_PACKAGES, SYSTEM, IS_WINDOWS, IS_LINUX, IS_MAC
+from core.database import init_share_db
+from utils.helpers import _boot_step, _boot_step_fail, get_java_version
+import services.java_compiler as jc
+from services.share_service import cleanup_expired_shares
+from api.routes import register_routes
+from api.sockets import register_socket_events
+from flask import send_from_directory
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    public_dir = os.path.join(os.path.dirname(__file__), 'public')
+    return send_from_directory(public_dir, 'robots.txt')
+
+
 # Redirect /blog/ to default blog slug
-
-
 
 
 # Eventlet monkey patching for non-Windows platforms
@@ -98,6 +105,7 @@ def serve(path):
 def redirect_blog_default():
     return flask.redirect('/blog/docker-for-java-beginners')
 
+
 @app.route('/blog/<slug>')
 def serve_blog_html(slug):
     public_dir = os.path.join(os.path.dirname(__file__), 'public')
@@ -126,7 +134,10 @@ def dynamic_sitemap():
             f'  <url>\n    <loc>{loc}</loc>\n    <lastmod>{lastmod}</lastmod>\n  </url>')
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{chr(10).join(urls)}\n</urlset>'
     return Response(xml, mimetype='application/xml')
-
+@app.route('/robots.txt')
+def robots_txt():
+    public_dir = os.path.join(os.path.dirname(__file__), 'public')
+    return send_from_directory(public_dir, 'robots.txt')
 
 @app.route('/public/<path:filename>')
 def serve_public_file(filename):
