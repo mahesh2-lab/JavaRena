@@ -128,4 +128,12 @@ if __name__ == "__main__":
     print(f"  {MAGENTA}{BOLD}>>> Listening on http://localhost:5000{RESET}")
     print()
 
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False, use_reloader=False, allow_unsafe_werkzeug=True)
+    if os.environ.get('FLASK_ENV') == 'development' or IS_WINDOWS:
+        # Development mode
+        socketio.run(app, host="0.0.0.0", port=5000, debug=False, use_reloader=False, allow_unsafe_werkzeug=True)
+    else:
+        # Production mode using Waitress
+        from waitress import serve
+        print(f"  {GREEN}{BOLD}[PRODUCTION]{RESET} {BOLD}Serving with Waitress...{RESET}")
+        serve(app, host="0.0.0.0", port=5000)
+
