@@ -1,6 +1,14 @@
-import React, { useState, useCallback, useEffect, useRef, Suspense } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  Suspense,
+} from "react";
 import { Navbar } from "./components/NavBar";
-const Editor = React.lazy(() => import("./components/Editor").then(m => ({ default: m.Editor })));
+const Editor = React.lazy(() =>
+  import("./components/Editor").then((m) => ({ default: m.Editor })),
+);
 import type { XTermTerminalRef } from "./components/XTermTerminal";
 import { useIsMobile } from "./hooks/use-mobile";
 import { Toaster } from "./components/ui/toaster";
@@ -11,11 +19,15 @@ import {
   GitGraph,
   Maximize2,
   Loader2,
-  Github
+  Github,
 } from "lucide-react";
 import { useToast } from "./hooks/use-toast";
 import { useHealthCheck, useCompile, useVisualize } from "./hooks/use-java-api";
-const TerminalPanel = React.lazy(() => import("./components/TerminalPanel").then(m => ({ default: m.TerminalPanel })));
+const TerminalPanel = React.lazy(() =>
+  import("./components/TerminalPanel").then((m) => ({
+    default: m.TerminalPanel,
+  })),
+);
 import type { TerminalPanelProps } from "./components/TerminalPanel";
 import { StatusBadge } from "./components/StatusBadge";
 
@@ -64,16 +76,16 @@ export default function App() {
   const [execTime, setExecTime] = useState<number | null>(null);
   const [serverReady, setServerReady] = useState<boolean>(false);
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("app_theme") as Theme) || "dark"
+    () => (localStorage.getItem("app_theme") as Theme) || "dark",
   );
   const [showConsole, setShowConsole] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [editorWidth, setEditorWidth] = useState<number>(
-    () => Number(localStorage.getItem("editor_width")) || 55
+    () => Number(localStorage.getItem("editor_width")) || 55,
   );
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<"editor" | "console">(
-    "editor"
+    "editor",
   );
 
   const xtermRef = useRef<XTermTerminalRef>(null);
@@ -81,7 +93,9 @@ export default function App() {
   const { toast } = useToast();
   const isReady = true;
 
-  const [hasMountedConsole, setHasMountedConsole] = useState<boolean>(!isMobile && showConsole);
+  const [hasMountedConsole, setHasMountedConsole] = useState<boolean>(
+    !isMobile && showConsole,
+  );
   const [stdinInput, setStdinInput] = useState<string>("");
   const [isForkedSession, setIsForkedSession] = useState<boolean>(false);
   const [errorReview, setErrorReview] = useState<ErrorReview | null>(null);
@@ -107,13 +121,13 @@ export default function App() {
             text: line,
             type: "info" as const,
             timestamp: Date.now(),
-          }))
+          })),
         );
       }
       setTimeout(() => {
         log(
           "👋 You're viewing a shared code snippet. Click Run to execute or edit the code!",
-          "info"
+          "info",
         );
       }, 500);
     }
@@ -155,7 +169,7 @@ export default function App() {
       const rect = mainEl.getBoundingClientRect();
       const pct = Math.max(
         20,
-        Math.min(80, ((e.clientX - rect.left) / rect.width) * 100)
+        Math.min(80, ((e.clientX - rect.left) / rect.width) * 100),
       );
       setEditorWidth(pct);
       localStorage.setItem("editor_width", pct.toString());
@@ -182,7 +196,7 @@ export default function App() {
     (text: string, type: "info" | "success" | "error" = "info") => {
       setOutput((prev) => [...prev, { text, type, timestamp: Date.now() }]);
     },
-    []
+    [],
   );
 
   // ── API Hooks ──────────────────────────────────────────
@@ -217,11 +231,14 @@ export default function App() {
     try {
       if (!serverReady) {
         throw new Error(
-          "Java Compiler Server not available. Make sure Python server is running."
+          "Java Compiler Server not available. Make sure Python server is running.",
         );
       }
 
-      const result = await compileMutation.mutateAsync({ code, stdin: stdinInput });
+      const result = await compileMutation.mutateAsync({
+        code,
+        stdin: stdinInput,
+      });
 
       if (!result.success) {
         log(`Error: ${result.error}`, "error");
@@ -241,13 +258,22 @@ export default function App() {
     } catch (err) {
       log(
         `Error: ${err instanceof Error ? err.message : String(err)}`,
-        "error"
+        "error",
       );
     } finally {
       setExecTime(Math.round(performance.now() - start));
       setIsRunning(false);
     }
-  }, [isRunning, code, log, serverReady, isMobile, stdinInput, interactiveMode, compileMutation]);
+  }, [
+    isRunning,
+    code,
+    log,
+    serverReady,
+    isMobile,
+    stdinInput,
+    interactiveMode,
+    compileMutation,
+  ]);
 
   const handleStop = useCallback(() => {
     xtermRef.current?.kill();
@@ -282,13 +308,10 @@ export default function App() {
     setAiReview(null);
   }, []);
 
-  const handleStatusChange = useCallback(
-    (s: TerminalStatus) => {
-      setTerminalStatus(s);
-      setIsRunning(s === "running" || s === "compiling");
-    },
-    []
-  );
+  const handleStatusChange = useCallback((s: TerminalStatus) => {
+    setTerminalStatus(s);
+    setIsRunning(s === "running" || s === "compiling");
+  }, []);
 
   // ── Visualize ─────────────────────────────────────────────
   const handleVisualize = useCallback(async () => {
@@ -351,7 +374,6 @@ export default function App() {
       setShowGraphTab(!showGraphTab);
     },
   };
-
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -448,9 +470,18 @@ export default function App() {
             <div className="flex-1 overflow-hidden relative">
               <section
                 className="h-full w-full"
-                style={{ display: mobileActiveTab === "editor" ? "block" : "none" }}
+                style={{
+                  display: mobileActiveTab === "editor" ? "block" : "none",
+                }}
               >
-                <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-slate-500"><Loader2 className="animate-spin w-6 h-6 mr-2" /> Loading editor...</div>}>
+                <Suspense
+                  fallback={
+                    <div className="flex w-full h-full items-center justify-center text-slate-500">
+                      <Loader2 className="animate-spin w-6 h-6 mr-2" /> Loading
+                      editor...
+                    </div>
+                  }
+                >
                   <Editor
                     code={code}
                     onChange={handleCodeChange}
@@ -461,10 +492,19 @@ export default function App() {
               </section>
               <section
                 className="h-full w-full"
-                style={{ display: mobileActiveTab === "console" ? "block" : "none" }}
+                style={{
+                  display: mobileActiveTab === "console" ? "block" : "none",
+                }}
               >
                 {hasMountedConsole ? (
-                  <Suspense fallback={<div className="flex w-full h-full items-center justify-center text-slate-500"><Loader2 className="animate-spin w-6 h-6 mr-2" /> Loading terminal...</div>}>
+                  <Suspense
+                    fallback={
+                      <div className="flex w-full h-full items-center justify-center text-slate-500">
+                        <Loader2 className="animate-spin w-6 h-6 mr-2" />{" "}
+                        Loading terminal...
+                      </div>
+                    }
+                  >
                     <TerminalPanel {...terminalPanelProps} />
                   </Suspense>
                 ) : null}
@@ -483,7 +523,14 @@ export default function App() {
                 overflow: "hidden",
               }}
             >
-              <Suspense fallback={<div className="flex-1 flex items-center justify-center text-slate-500"><Loader2 className="animate-spin w-6 h-6 mr-2" /> Loading editor...</div>}>
+              <Suspense
+                fallback={
+                  <div className="flex-1 flex items-center justify-center text-slate-500">
+                    <Loader2 className="animate-spin w-6 h-6 mr-2" /> Loading
+                    editor...
+                  </div>
+                }
+              >
                 <Editor
                   code={code}
                   onChange={handleCodeChange}
@@ -532,7 +579,14 @@ export default function App() {
                   }}
                 >
                   {hasMountedConsole ? (
-                    <Suspense fallback={<div className="flex-1 flex items-center justify-center text-slate-500"><Loader2 className="animate-spin w-6 h-6 mr-2" /> Loading terminal...</div>}>
+                    <Suspense
+                      fallback={
+                        <div className="flex-1 flex items-center justify-center text-slate-500">
+                          <Loader2 className="animate-spin w-6 h-6 mr-2" />{" "}
+                          Loading terminal...
+                        </div>
+                      }
+                    >
                       <TerminalPanel {...terminalPanelProps} />
                     </Suspense>
                   ) : null}
@@ -543,20 +597,56 @@ export default function App() {
         )}
       </main>
 
-      <footer className="sr-only" aria-label="Site information">
-        <p>
-          JavaRena is a free online Java compiler and code playground. Built
-          with React, Monaco Editor, and Flask.
-        </p>
-        <nav aria-label="Footer links">
-          <a href="https://github.com/mahesh2-lab/JavaRena">
-            GitHub Repository
-          </a>
-        </nav>
-        <p>
-          &copy; {new Date().getFullYear()} JavaRena by Mahesh Chopade. All
-          rights reserved.
-        </p>
+      <footer
+        className="prose mx-auto mt-12 mb-8"
+        aria-label="Site information"
+      >
+        <section>
+          <h2>About JavaRena</h2>
+          <p>
+            <strong>JavaRena</strong> is a modern, free online Java compiler,
+            code playground, and learning platform. Instantly write, run, and
+            share Java code with syntax highlighting, real-time output, and
+            interactive terminal. JavaRena is designed for students,
+            professionals, and educators to practice Java, build projects, and
+            explore the Java ecosystem.
+          </p>
+          <ul>
+            <li>Java online compiler, interpreter, and code runner</li>
+            <li>Java tutorials, guides, and beginner resources</li>
+            <li>Spring Boot, microservices, and REST API examples</li>
+            <li>Java collections, JVM, and advanced topics</li>
+            <li>Share code snippets and collaborate in real time</li>
+            <li>
+              Syntax highlighting, Monaco Editor, and interactive terminal
+            </li>
+            <li>Built with React, Flask, and modern web technologies</li>
+            <li>
+              SEO keywords: java online compiler, java playground, java
+              tutorial, spring boot, microservices, java beginner, java
+              interview, java code sharing, java learning, java development,
+              java ecosystem, java collections, JVM, REST API, code editor,
+              collaborative coding
+            </li>
+          </ul>
+          <nav aria-label="Footer links">
+            <a
+              href="https://github.com/mahesh2-lab/JavaRena"
+              rel="noopener"
+              target="_blank"
+            >
+              GitHub Repository
+            </a>
+            <span> | </span>
+            <a href="/blog/docker-for-java-beginners">Java Blog</a>
+            <span> | </span>
+            <a href="/sitemap.xml">Sitemap</a>
+          </nav>
+          <p>
+            &copy; {new Date().getFullYear()} JavaRena by Mahesh Chopade. All
+            rights reserved.
+          </p>
+        </section>
       </footer>
 
       <Toaster />
