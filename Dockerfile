@@ -77,7 +77,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # ── Copy the Python server files ────────────────────────
-COPY backend/*.py ./
+COPY backend/ ./
 # Copy shares.db if it exists (though usually it should be a volume)
 # COPY backend/shares.db ./
 
