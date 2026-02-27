@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /blog/
+Disallow: /api/
+Disallow: /socket.io/
+
+Sitemap: https://javarena.hostmyidea.me/sitemap.xml

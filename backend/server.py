@@ -21,9 +21,6 @@ from api.sockets import register_socket_events
 from flask import send_from_directory
 
 
-
-
-
 # Redirect /blog/ to default blog slug
 
 
@@ -132,10 +129,18 @@ def dynamic_sitemap():
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{chr(10).join(urls)}\n</urlset>'
     return Response(xml, mimetype='application/xml')
 
+
 @app.route('/robots.txt')
 def robots_txt():
     public_dir = os.path.join(os.path.dirname(__file__), 'public')
-    return send_from_directory(public_dir, 'robots.txt')
+    robots_path = os.path.join(public_dir, 'robots.txt')
+    if os.path.exists(robots_path):
+        with open(robots_path, 'r') as f:
+            content = f.read()
+        return Response(content, mimetype='text/plain')
+    else:
+        return Response("User-agent: *\nDisallow:", mimetype='text/plain')
+
 
 @app.route('/public/<path:filename>')
 def serve_public_file(filename):
