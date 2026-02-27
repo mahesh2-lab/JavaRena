@@ -51,7 +51,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ── Install Node.js 20.x (from NodeSource) ─────────────
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists/* && sudo apt install git
+    && rm -rf /var/lib/apt/lists/* && apt install git
 
 # ── Verify all runtimes are available ───────────────────
 RUN echo "=== Runtime Versions ===" && \
