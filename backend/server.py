@@ -171,7 +171,7 @@ if __name__ == "__main__":
     print()
 
     print(
-        f"  {YELLOW}{BOLD}[BOOT]{RESET} {DIM}JavaRena v2.0 — Interactive Terminal Protocol{RESET}")
+        f"  {YELLOW}{BOLD}[BOOT]{RESET} {DIM}Jyvra v2.0 — Interactive Terminal Protocol{RESET}")
     print()
 
     os_label = f"{SYSTEM}"
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     _boot_step("Starting cleanup daemon", "Background task active")
 
     print()
-    print(f"  {GREEN}{BOLD}[SYSTEM]{RESET} {BOLD}The Arena is open.{RESET}")
+    print(f"  {GREEN}{BOLD}[SYSTEM]{RESET} {BOLD}Jyvra is open.{RESET}")
     print()
 
     if not java_available:

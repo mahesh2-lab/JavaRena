@@ -58,12 +58,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         />
         <a
           href="/"
-          aria-label="JavaRena - Home"
+          aria-label="Jyvra - Home"
           className="text-[14px] sm:text-[15px] font-bold tracking-tight"
           style={{ fontFamily: "'Outfit', sans-serif", textDecoration: "none" }}
         >
-          <span style={{ color: "var(--logo-text)" }}>Java</span>
-          <span className="text-gradient">Rena</span>
+          <span style={{ color: "var(--logo-text)" }}>Jy</span>
+          <span className="text-gradient">vra</span>
         </a>
       </div>
 
@@ -74,10 +74,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onRun}
           disabled={!isReady || isRunning}
           title={isRunning ? "Running..." : "Run Code"}
-          className={`group flex items-center justify-center font-bold tracking-wide transition-all duration-200 active:scale-95 shadow-sm hdr-btn ${isMobile
-            ? "gap-1 rounded-full text-[10px] px-3.5 py-1.5"
-            : "gap-1.5 rounded-[6px] text-[11px] px-4 py-1.5 h-8"
-            }`}
+          className={`group flex items-center justify-center font-bold tracking-wide transition-all duration-200 active:scale-95 shadow-sm hdr-btn ${
+            isMobile
+              ? "gap-1 rounded-full text-[10px] px-3.5 py-1.5"
+              : "gap-1.5 rounded-[6px] text-[11px] px-4 py-1.5 h-8"
+          }`}
           style={{
             background:
               !isReady || isRunning
@@ -112,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="flex items-center gap-1 sm:gap-1.5">
         {/* Give a Star Button */}
         <a
-          href="https://github.com/mahesh2-lab/JavaRena"
+          href="https://github.com/mahesh2-lab/jyvra"
           target="_blank"
           rel="noopener noreferrer"
           title="Star us on GitHub"
@@ -123,7 +124,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
         >
           <Star className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-          {!isMobile && <span className="text-xs ml-1.5 font-medium">Star</span>}
+          {!isMobile && (
+            <span className="text-xs ml-1.5 font-medium">Star</span>
+          )}
         </a>
 
         {/* Console Toggle Button - Desktop only */}

@@ -32,9 +32,9 @@ import type { TerminalPanelProps } from "./components/TerminalPanel";
 import { StatusBadge } from "./components/StatusBadge";
 
 const DEFAULT_CODE = `public class Main {
-    public static void main(String[] args) {
-        System.out.println("⚡ Welcome to JavaRena! ☕");
-    }
+  public static void main(String[] args) {
+    System.out.println("⚡ Welcome to Jyvra! ☕");
+  }
 }`;
 
 import { Theme, LogEntry, ErrorReview, TerminalStatus } from "./types";
@@ -381,7 +381,7 @@ export default function App() {
       data-theme={theme}
       className="flex flex-col"
       role="application"
-      aria-label="JavaRena - Online Java Compiler"
+      aria-label="Jyvra - Online Java Compiler"
       style={{
         height: "100%",
         width: "100%",
@@ -392,21 +392,21 @@ export default function App() {
       }}
     >
       <h1 className="sr-only">
-        JavaRena — Online Java Compiler &amp; Code Playground
+        Jyvra — Online Java Compiler &amp; Code Playground
       </h1>
 
       <SEOHead
         title={
           isForkedSession
-            ? "Shared Java Code — JavaRena Playground"
-            : "JavaRena — Online Java Compiler & Code Playground"
+            ? "Shared Java Code — Jyvra Playground"
+            : "Jyvra — Online Java Compiler & Code Playground"
         }
         description={
           isForkedSession
-            ? "View and run this shared Java code snippet on JavaRena. Free online Java compiler with Monaco Editor."
+            ? "View and run this shared Java code snippet on Jyvra. Free online Java compiler with Monaco Editor."
             : "Write, compile, and run Java code instantly in your browser. Free online Java playground with Monaco Editor and real-time output."
         }
-        canonicalUrl="https://javarena.hostmyidea.me/"
+        canonicalUrl="https://jyvra.hostmyidea.me/"
         noIndex={isForkedSession}
       />
 
@@ -602,14 +602,14 @@ export default function App() {
         aria-label="Site information"
       >
         <section>
-          <h2>About JavaRena</h2>
+          <h2>About Jyvra</h2>
           <p>
-            <strong>JavaRena</strong> is a modern, free online Java compiler,
-            code playground, and learning platform. Instantly write, run, and
-            share Java code with syntax highlighting, real-time output, and
-            interactive terminal. JavaRena is designed for students,
-            professionals, and educators to practice Java, build projects, and
-            explore the Java ecosystem.
+            <strong>Jyvra</strong> is a modern, free online Java compiler, code
+            playground, and learning platform. Instantly write, run, and share
+            Java code with syntax highlighting, real-time output, and
+            interactive terminal. Jyvra is designed for students, professionals,
+            and educators to practice Java, build projects, and explore the Java
+            ecosystem.
           </p>
           <ul>
             <li>Java online compiler, interpreter, and code runner</li>
@@ -631,7 +631,7 @@ export default function App() {
           </ul>
           <nav aria-label="Footer links">
             <a
-              href="https://github.com/mahesh2-lab/JavaRena"
+              href="https://github.com/mahesh2-lab/jyvra"
               rel="noopener"
               target="_blank"
             >
@@ -643,7 +643,7 @@ export default function App() {
             <a href="/sitemap.xml">Sitemap</a>
           </nav>
           <p>
-            &copy; {new Date().getFullYear()} JavaRena by Mahesh Chopade. All
+            &copy; {new Date().getFullYear()} Jyvra by Mahesh Chopade. All
             rights reserved.
           </p>
         </section>

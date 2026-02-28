@@ -1,6 +1,6 @@
 <p align="center">
-  <a href="https://github.com/mahesh2-lab/JavaRena">
-    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=28&duration=3000&pause=1000&color=FF2D20&center=true&vCenter=true&multiline=true&repeat=true&width=750&height=120&lines=%E2%9B%A7+INITIALIZING+JVM+SUMMONING+PROTOCOL+%E2%9B%A7;%E2%98%95+JavaRena+%E2%80%94+The+Arena+Awakens+%E2%98%95;%E2%9A%A1+Compile.+Execute.+Conquer.+%E2%9A%A1" alt="JavaRena Boot Sequence" />
+  <a href="https://github.com/mahesh2-lab/jyvra">
+    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=28&duration=3000&pause=1000&color=FF2D20&center=true&vCenter=true&multiline=true&repeat=true&width=750&height=120&lines=%E2%9B%A7+INITIALIZING+JVM+SUMMONING+PROTOCOL+%E2%9B%A7;%E2%98%95+Jyvra+%E2%80%94+The+Arena+Awakens+%E2%98%95;%E2%9A%A1+Compile.+Execute.+Conquer.+%E2%9A%A1" alt="Jyvra Boot Sequence" />
   </a>
 </p>
 
@@ -22,12 +22,12 @@
 
 ---
 
-# ⛧ JavaRena ⚡ — *Where Code Enters. Bytecode Leaves.* ☕
+# ⛧ Jyvra ⚡ — *Where Code Enters. Bytecode Leaves.* ☕
 
 > *"In the beginning, there was `javac`. And `javac` said: let there be `.class` files. And there were `.class` files. And the JVM looked upon them, and saw that they were good."*
 > — The Book of Compilation, Chapter 1
 
-**JavaRena** is a browser-based online Java compiler and execution arena — a full-stack ritual chamber where mortals write Java, and the server compiles and runs it in real time. Monaco Editor on the frontend. Flask on the backend. The JVM in the shadows, waiting.
+**Jyvra** is a browser-based online Java compiler and execution arena — a full-stack ritual chamber where mortals write Java, and the server compiles and runs it in real time. Monaco Editor on the frontend. Flask on the backend. The JVM in the shadows, waiting.
 
 ---
 
@@ -45,7 +45,7 @@
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-[BOOT] JavaRena v1.0 — Summoning Protocol Initiated
+[BOOT] Jyvra v1.0 — Summoning Protocol Initiated
 [    ] Detecting host OS .................... ✓ Linux
 [    ] Locating javac binary ................ ✓ /usr/bin/javac
 [    ] Verifying JVM heartbeat .............. ✓ OpenJDK 17.0.2

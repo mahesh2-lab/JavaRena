@@ -46,7 +46,7 @@ def find_java():
                             JAVA_PATH = java_exe
                             JAVAC_PATH = javac_exe
                             JAVA_AVAILABLE = True
-                            print(f"[OK] Found Java at: {JAVA_PATH}")
+                            print(f"[JYVRA OK] Found Java at: {JAVA_PATH}")
                             return True
             except Exception as e:
                 print(f"  Error searching {search_dir}: {e}")
@@ -77,27 +77,28 @@ def find_java():
 
 def compile_java(source_code, stdin_input=""):
     """Compile and run Java source code with optional stdin input. Class name is always extracted from code."""
-    print("[DEBUG] Starting compile_java function.")
+    print("[JYVRA DEBUG] Starting compile_java function.")
     if not find_java():
-        print("[DEBUG] Java compiler not found.")
+        print("[JYVRA DEBUG] Java compiler not found.")
         return {"success": False, "error": "Java compiler (javac) not found on this system"}
 
     try:
-        print("[DEBUG] Creating temp directory for Java compilation.")
+        print("[JYVRA DEBUG] Creating temp directory for Java compilation.")
         temp_dir = tempfile.mkdtemp()
         import re
         match = re.search(r'public\s+class\s+(\w+)', source_code)
         class_name_extracted = match.group(1) if match else "Main"
-        print(f"[DEBUG] Extracted class name: {class_name_extracted}")
+        print(f"[JYVRA DEBUG] Extracted class name: {class_name_extracted}")
         source_file = Path(temp_dir) / f"{class_name_extracted}.java"
-        print(f"[DEBUG] Writing source file: {source_file}")
+        print(f"[JYVRA DEBUG] Writing source file: {source_file}")
         source_file.write_text(source_code, encoding='utf-8')
         class_name = class_name_extracted
 
         print(
-            f"[DEBUG] Compiling Java code with class name: {class_name} in temp dir: {temp_dir}")
+            f"[JYVRA DEBUG] Compiling Java code with class name: {class_name} in temp dir: {temp_dir}")
         compile_cmd = [JAVAC_PATH, "-encoding", "UTF-8", str(source_file)]
-        print(f"[DEBUG] Running compile command: {' '.join(compile_cmd)}")
+        print(
+            f"[JYVRA DEBUG] Running compile command: {' '.join(compile_cmd)}")
         result = subprocess.run(
             compile_cmd,
             capture_output=True,
@@ -107,8 +108,8 @@ def compile_java(source_code, stdin_input=""):
         )
 
         if result.returncode != 0:
-            print("[DEBUG] Compilation failed.")
-            print(f"[DEBUG] Compiler stderr: {result.stderr}")
+            print("[JYVRA DEBUG] Compilation failed.")
+            print(f"[JYVRA DEBUG] Compiler stderr: {result.stderr}")
             shutil.rmtree(temp_dir)
             return {
                 "success": False,
@@ -117,7 +118,7 @@ def compile_java(source_code, stdin_input=""):
 
         run_cmd = [JAVA_PATH, "-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8",
                    "-Dsun.stderr.encoding=UTF-8", "-cp", temp_dir, class_name]
-        print(f"[DEBUG] Running execution command: {' '.join(run_cmd)}")
+        print(f"[JYVRA DEBUG] Running execution command: {' '.join(run_cmd)}")
         result = subprocess.run(
             run_cmd,
             input=stdin_input if stdin_input else None,
@@ -130,9 +131,9 @@ def compile_java(source_code, stdin_input=""):
 
         output = result.stdout
         error = result.stderr
-        print("[DEBUG] Execution finished. Cleaning up temp directory.")
+        print("[JYVRA DEBUG] Execution finished. Cleaning up temp directory.")
         shutil.rmtree(temp_dir)
-        print("[DEBUG] Returning result.")
+        print("[JYVRA DEBUG] Returning result.")
         return {
             "success": True,
             "output": output,

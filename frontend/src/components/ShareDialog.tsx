@@ -58,31 +58,31 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     localStorage.setItem("share_cache", JSON.stringify({ hash, url }));
   };
 
-  const brandName = "JavaRena";
+  const brandName = "Jyvra";
   const isDark = theme === "dark";
 
   // Color palette adapts to theme
   const colors = isDark
     ? {
-      darkBg: "#0D1117",
-      cardBg: "#161B22",
-      inputBg: "#090C10",
-      borderColor: "#30363D",
-      primaryGreen: "#00C853",
-      primaryGreenHover: "#00E676",
-      textPrimary: "#FFFFFF",
-      textMuted: "#8B949E",
-    }
+        darkBg: "#0D1117",
+        cardBg: "#161B22",
+        inputBg: "#090C10",
+        borderColor: "#30363D",
+        primaryGreen: "#00C853",
+        primaryGreenHover: "#00E676",
+        textPrimary: "#FFFFFF",
+        textMuted: "#8B949E",
+      }
     : {
-      darkBg: "#FFFFFF",
-      cardBg: "#F6F8FA",
-      inputBg: "#EAEEF2",
-      borderColor: "#D0D7DE",
-      primaryGreen: "#00A846",
-      primaryGreenHover: "#00C853",
-      textPrimary: "#1F2328",
-      textMuted: "#656D76",
-    };
+        darkBg: "#FFFFFF",
+        cardBg: "#F6F8FA",
+        inputBg: "#EAEEF2",
+        borderColor: "#D0D7DE",
+        primaryGreen: "#00A846",
+        primaryGreenHover: "#00C853",
+        textPrimary: "#1F2328",
+        textMuted: "#656D76",
+      };
 
   const escapeHtml = (text: string) => {
     const div = document.createElement("div");
@@ -178,8 +178,9 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
           <div style="padding: 32px;">
             <pre style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 18px; line-height: 1.75; color: rgba(255, 255, 255, 0.9); margin: 0; white-space: pre-wrap; word-break: break-word;">${highlightedCode}</pre>
           </div>
-          ${output.trim()
-        ? `
+          ${
+            output.trim()
+              ? `
           <div style="padding: 24px; background: rgba(0, 0, 0, 0.4); border-top: 1px solid rgba(255, 255, 255, 0.05); font-family: 'JetBrains Mono', 'Courier New', monospace;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.4); font-weight: bold;">
               <span>&#9000;</span>
@@ -190,8 +191,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
             </div>
           </div>
           `
-        : ""
-      }
+              : ""
+          }
         </div>
         <div style="position: absolute; bottom: 8px; right: 16px; display: flex; align-items: center; gap: 12px;">
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
@@ -360,7 +361,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
           .toISOString()
           .slice(0, 19)
           .replace(/:/g, "-");
-        link.download = `javarena_Snippet-${timestamp}.png`;
+        link.download = `jyvra_Snippet-${timestamp}.png`;
         link.href = url;
         document.body.appendChild(link);
         link.click();

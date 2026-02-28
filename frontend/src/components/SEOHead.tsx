@@ -17,10 +17,10 @@ interface SEOProps {
  *   <SEOHead title="My Page" description="Description here" />
  */
 export function SEOHead({
-  title = "JavaRena — Online Java Compiler & Code Playground",
+  title = "Jyvra — Online Java Compiler & Code Playground",
   description = "Write, compile, and run Java code instantly in your browser. Free online Java playground with Monaco Editor and real-time output.",
   canonicalUrl,
-  ogImage = "https://javarena.hostmyidea.me/og-image.png",
+  ogImage = "https://jyvra.hostmyidea.me/og-image.png",
   ogType = "website",
   noIndex = false,
 }: SEOProps) {
@@ -39,7 +39,13 @@ export function SEOHead({
       <meta property="og:description" content={description} />
       <meta property="og:type" content={ogType} />
       {ogImage && <meta property="og:image" content={ogImage} />}
-      <meta property="og:url" content={canonicalUrl || (typeof window !== 'undefined' ? window.location.href : '')} />
+      <meta
+        property="og:url"
+        content={
+          canonicalUrl ||
+          (typeof window !== "undefined" ? window.location.href : "")
+        }
+      />
 
       {/* Twitter Card */}
       <meta name="twitter:title" content={title} />
