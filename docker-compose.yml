@@ -8,8 +8,11 @@ services:
       - "5000:5000"
     restart: unless-stopped
     environment:
-      - FLASK_ENV=production
+      - APP_ENV=production
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    volumes:
+      - ./backend/shares.db:/app/shares.db
+      - ./backend/share-images:/app/share-images
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s

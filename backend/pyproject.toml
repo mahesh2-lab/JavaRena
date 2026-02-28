@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "docker>=7.1.0",
+    "fastapi>=0.134.0",
     "flask>=3.1.2",
     "flask-cors>=6.0.2",
     "flask-socketio>=5.6.1",
@@ -13,7 +14,10 @@ dependencies = [
     "nanoid>=2.0.0",
     "pillow>=12.1.1",
     "psutil>=7.2.2",
+    "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.1",
+    "python-socketio>=5.16.1",
     "requests>=2.32.5",
+    "uvicorn>=0.41.0",
     "waitress>=3.0.2",
 ]

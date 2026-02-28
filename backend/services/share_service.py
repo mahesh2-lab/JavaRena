@@ -3,8 +3,8 @@ import sqlite3
 import time
 from datetime import datetime
 from nanoid import generate
-from core.config import DB_PATH, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX
-from utils.helpers import get_client_ip
+from core.config import settings
+from fastapi import Request
 
 # Rate limit storage
 rate_limit_storage = {}
@@ -17,9 +17,13 @@ def sanitize_code(code):
     """Validate code input"""
     return code
 
-def check_rate_limit():
+def check_rate_limit(request: Request):
     """Check if client has exceeded rate limit"""
-    client_ip = get_client_ip()
+    # Get client IP from FastAPI request
+    client_ip = request.client.host
+    if request.headers.get('X-Forwarded-For'):
+        client_ip = request.headers.get('X-Forwarded-For').split(',')[0]
+    
     current_time = time.time()
 
     if client_ip not in rate_limit_storage:
@@ -27,25 +31,24 @@ def check_rate_limit():
 
     rate_limit_storage[client_ip] = [
         ts for ts in rate_limit_storage[client_ip]
-        if current_time - ts < RATE_LIMIT_WINDOW
+        if current_time - ts < settings.RATE_LIMIT_WINDOW
     ]
 
-    if len(rate_limit_storage[client_ip]) >= RATE_LIMIT_MAX:
+    if len(rate_limit_storage[client_ip]) >= settings.RATE_LIMIT_MAX:
         return False
 
     rate_limit_storage[client_ip].append(current_time)
     return True
 
-def cleanup_expired_shares():
+async def cleanup_expired_shares_task():
     """Background task to cleanup expired shares and images"""
     while True:
         try:
-            time.sleep(3600)
-
-            conn = sqlite3.connect(DB_PATH)
+            # We use 1 hour interval as in the original code
+            # But we'll run it once at startup and then every hour
+            conn = sqlite3.connect(settings.DB_PATH)
             cursor = conn.cursor()
 
-            # Using a simplified query for internal logic
             cursor.execute("""
                 SELECT id, image_path FROM shares 
                 WHERE expires_at < datetime('now')
@@ -63,8 +66,12 @@ def cleanup_expired_shares():
                     except Exception as e:
                         print(f"[CLEANUP] Failed to delete image {image_path}: {e}")
 
-            print(f"[CLEANUP] Cleaned up {len(expired)} expired shares")
+            if len(expired) > 0:
+                print(f"[CLEANUP] Cleaned up {len(expired)} expired shares")
             conn.close()
 
         except Exception as e:
             print(f"[CLEANUP] Error during cleanup: {e}")
+            
+        import asyncio
+        await asyncio.sleep(3600)

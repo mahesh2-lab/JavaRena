@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import subprocess
 from pathlib import Path
-from core.config import IS_WINDOWS, SYSTEM
+from core.config import settings
 
 # Global state for Java availability
 JAVA_PATH = None
@@ -18,7 +18,7 @@ def find_java():
     if JAVA_AVAILABLE and JAVA_PATH and JAVAC_PATH:
         return True
 
-    if IS_WINDOWS:
+    if settings.IS_WINDOWS:
         javac = shutil.which("javac")
         java = shutil.which("java")
 
@@ -138,7 +138,7 @@ def compile_java(source_code, stdin_input=""):
             "success": True,
             "output": output,
             "error": error,
-            "os": SYSTEM
+            "os": settings.SYSTEM
         }
 
     except subprocess.TimeoutExpired:
@@ -174,7 +174,7 @@ def run_interactive_java(temp_dir, class_name="Main"):
            "-Dsun.stderr.encoding=UTF-8", "-cp", temp_dir, class_name]
 
     # On Windows, running through cmd /c can sometimes improve pipe responsiveness
-    if IS_WINDOWS:
+    if settings.IS_WINDOWS:
         cmd = ["cmd", "/c"] + cmd
 
     return subprocess.Popen(

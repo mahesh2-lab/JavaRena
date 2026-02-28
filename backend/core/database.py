@@ -1,12 +1,12 @@
 import sqlite3
 import os
-from core.config import DB_PATH, SHARE_IMAGES_DIR
+from .config import settings
 
 def init_share_db():
     """Initialize SQLite database for shares"""
-    os.makedirs(SHARE_IMAGES_DIR, exist_ok=True)
+    os.makedirs(settings.SHARE_IMAGES_DIR, exist_ok=True)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(settings.DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""

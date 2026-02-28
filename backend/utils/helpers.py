@@ -1,13 +1,6 @@
 import sys
 import time
 import subprocess
-from flask import request
-
-def get_client_ip():
-    """Get client IP for rate limiting"""
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0]
-    return request.remote_addr
 
 def _ansi_escape(text: str) -> str:
     """Convert plain text to xterm-safe string (escape < and > but keep newlines as \r\n)."""

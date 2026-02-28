@@ -598,7 +598,7 @@ export default function App() {
       </main>
 
       <footer
-        className="prose mx-auto mt-12 mb-8 sr-only:not-sr-only px-4 hidden"
+        className="prose mx-auto mt-12 mb-8 sr-only px-4 hidden"
         aria-label="Site information"
       >
         <section>
