@@ -1304,10 +1304,10 @@ export const Editor: React.FC<EditorProps> = ({
             cursorSmoothCaretAnimation: "on",
             cursorStyle: cursorStyle as any,
             cursorWidth: 2,
-            padding: { top: 0, bottom: 20 },
+            padding: { top: 12, bottom: 20 },
             renderLineHighlight: "all",
             renderLineHighlightOnlyWhenFocus: false,
-            scrollBeyondLastLine: false,
+            scrollBeyondLastLine: true,
             lineNumbers: lineNumbers ? "on" : "off",
             lineDecorationsWidth: 16,
             lineNumbersMinChars: 3,
@@ -1334,6 +1334,8 @@ export const Editor: React.FC<EditorProps> = ({
             autoIndent: "full",
             formatOnPaste: true,
             scrollbar: {
+              vertical: "auto",
+              horizontal: "auto",
               verticalScrollbarSize: 6,
               horizontalScrollbarSize: 6,
               useShadows: false,
@@ -1341,6 +1343,7 @@ export const Editor: React.FC<EditorProps> = ({
               horizontalHasArrows: false,
               verticalSliderSize: 6,
               horizontalSliderSize: 6,
+              alwaysConsumeMouseWheel: false,
             },
           }}
         />

@@ -467,7 +467,7 @@ export default function App() {
               ))}
             </nav>
 
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-auto relative">
               <section
                 className="h-full w-full"
                 style={{
@@ -520,7 +520,7 @@ export default function App() {
               style={{
                 width: showConsole ? `${editorWidth}%` : "100%",
                 flexShrink: 0,
-                overflow: "hidden",
+                overflow: "auto",
               }}
             >
               <Suspense
