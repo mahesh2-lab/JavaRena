@@ -416,7 +416,7 @@ body {
     flex: 1 1 0 !important;
     min-height: 0 !important;
     width: 100% !important;
-    overflow: hidden !important;
+    overflow: auto !important;
   }
 
   .responsive-console {
